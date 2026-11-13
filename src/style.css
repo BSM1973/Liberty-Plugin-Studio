@@ -43,3 +43,6 @@ button:disabled{opacity:.4;cursor:not-allowed}
 
 /* v0.9 guided creation */
 .creator{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:14px 18px;background:linear-gradient(110deg,#102b4d,#101c31);border-bottom:1px solid #34577b}.creator-heading{display:flex;flex-direction:column;gap:4px;min-width:180px}.creator-heading small{font-size:11px;color:#a8c5df}.creator textarea{flex:1 1 320px;min-width:220px;resize:vertical;background:#09182b;color:#e8f4ff;border:1px solid #42678e;border-radius:8px;padding:10px;font:inherit}.creator select{background:#10233b;color:#fff;border:1px solid #42678e;border-radius:6px;padding:9px}.creator button{white-space:normal}.advanced-hidden{display:none!important}
+
+/* v0.10 AI generation status */
+.ai-status{flex-basis:100%;color:#c9def4;font-size:12px;padding:3px 0;overflow-wrap:anywhere}
