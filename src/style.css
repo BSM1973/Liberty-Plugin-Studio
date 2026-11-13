@@ -23,3 +23,14 @@ button:disabled{opacity:.4;cursor:not-allowed}
 
 /* v0.4 layers */
 .layers{display:flex;flex-direction:column;gap:5px;max-height:38vh;overflow:auto}.layer{display:flex;align-items:center;gap:3px;padding:3px;border:1px solid #2e4c6c;border-radius:5px}.layer.active{border-color:var(--accent)}.layer button{width:auto;margin:0;padding:5px;font-size:11px}.layer .layer-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}.layer-actions{display:flex;gap:5px}.layer-actions button{flex:1;font-size:11px;padding:6px}
+
+/* v0.5 custom control appearances and artwork */
+.element.image{padding:0;overflow:hidden}.imported-art{width:100%;height:100%;object-fit:fill;pointer-events:none;user-select:none}
+.visual-flat .dial{background:#2b4058;border:2px solid var(--accent);box-shadow:none}
+.visual-flat .push{background:#2b4058;border:1px solid var(--accent);box-shadow:none}
+.visual-flat .thumb{background:var(--accent);border:0;box-shadow:none}
+.visual-flat.panel{background:#15243b;border:1px solid var(--accent);box-shadow:none}
+.visual-neon .dial{background:radial-gradient(circle,#1b3550,#030914);border:3px solid var(--accent);box-shadow:0 0 18px var(--accent),inset 0 0 14px #000}
+.visual-neon .push{background:#06101e;border:2px solid var(--accent);box-shadow:0 0 15px var(--accent),inset 0 0 9px var(--accent)}
+.visual-neon .thumb{background:var(--accent);box-shadow:0 0 12px var(--accent)}
+.visual-neon.panel{border:1px solid var(--accent);box-shadow:inset 0 0 14px #000,0 0 12px var(--accent)}
