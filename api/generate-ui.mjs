@@ -3,6 +3,9 @@ const themes={midnight:'midnight blue and brushed steel',graphite:'graphite and 
 export default async function handler(req,res){
   res.setHeader('Cache-Control','no-store');
   if(req.method!=='POST'){res.setHeader('Allow','POST');return res.status(405).json({error:'Méthode non autorisée.'});}
+  const access=process.env.STUDIO_ACCESS_CODE;
+  if(!access)return res.status(503).json({error:'Code d’accès privé non configuré sur le site.'});
+  if(req.headers['x-studio-access']!==access)return res.status(401).json({error:'Code d’accès incorrect.'});
   const key=process.env.OPENAI_API_KEY;
   if(!key)return res.status(503).json({error:'La clé IA doit être configurée dans les variables privées du site.'});
   const {description,theme}=req.body||{};
