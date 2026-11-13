@@ -46,3 +46,13 @@ button:disabled{opacity:.4;cursor:not-allowed}
 
 /* v0.10 AI generation status */
 .ai-status{flex-basis:100%;color:#c9def4;font-size:12px;padding:3px 0;overflow-wrap:anywhere}
+
+/* v0.13 — Import ZIP et galerie de façades */
+.zip-import-bar{display:flex;align-items:center;flex-wrap:wrap;gap:12px;padding:10px 16px;background:#142840;border-bottom:1px solid #365573;color:#a9c8e4;font-size:13px}
+.zip-import-bar button,.zip-gallery button{background:#203d5b;border:1px solid #537da1;color:#eaf5ff;border-radius:6px;padding:9px 14px;cursor:pointer}
+.zip-gallery{padding:18px;max-width:1400px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.zip-gallery-head{display:flex;justify-content:space-between;align-items:center;color:#e6f4ff}
+.zip-gallery nav{display:flex;gap:8px;flex-wrap:wrap}
+.zip-gallery nav button.active{background:#3687bf;border-color:#9cdaff}
+.zip-gallery img{display:block;width:100%;height:auto;object-fit:contain;border:1px solid #41627c;border-radius:7px;background:#081522}
+.zip-gallery small{color:#b4c7d9}
