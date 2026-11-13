@@ -37,3 +37,6 @@ button:disabled{opacity:.4;cursor:not-allowed}
 
 /* v0.7: custom artwork remains inside control bounds */
 .custom-control-art{max-width:100%;max-height:calc(100% - 24px);width:auto;height:auto;object-fit:contain;pointer-events:none;user-select:none;filter:drop-shadow(0 4px 7px #0008)}
+
+/* v0.8 vertical spritesheets: one frame visible at a time */
+.sprite-control{width:min(80%,100px);aspect-ratio:1;background-repeat:no-repeat;background-position:center;background-size:100% 100%;pointer-events:none;flex-shrink:0;filter:drop-shadow(0 4px 7px #0008)}
