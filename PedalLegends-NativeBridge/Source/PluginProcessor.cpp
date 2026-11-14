@@ -15,6 +15,14 @@ PedalLegendsBridgeProcessor::PedalLegendsBridgeProcessor()
           .withInput ("Entrée", juce::AudioChannelSet::stereo(), true)
           .withOutput ("Sortie", juce::AudioChannelSet::stereo(), true))
 {
+    routingMode = new juce::AudioParameterChoice (
+        juce::ParameterID { "lms_route_mode", 1 }, "Routage",
+        juce::StringArray { "Série", "Parallèle (direct + effets)" }, 0);
+    parallelBlend = new juce::AudioParameterFloat (
+        juce::ParameterID { "lms_parallel_blend", 1 }, "Dosage parallèle",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.5f);
+    addParameter (routingMode);
+    addParameter (parallelBlend);
     formatManager.addDefaultFormats();
     triggerAsyncUpdate();
 }
@@ -39,6 +47,9 @@ void PedalLegendsBridgeProcessor::prepareToPlay (double sampleRate, int blockSiz
     currentSampleRate = sampleRate;
     currentBlockSize = blockSize;
     prepared = true;
+    // Allocate only off the audio thread. Serial mode remains unchanged.
+    dryFloat.setSize (2, juce::jmax (64, blockSize), false, false, true);
+    dryDouble.setSize (2, juce::jmax (64, blockSize), false, false, true);
     if (engine != nullptr)
         engine->prepareToPlay (sampleRate, blockSize);
 }
@@ -55,18 +66,53 @@ void PedalLegendsBridgeProcessor::processBlock (juce::AudioBuffer<float>& audio,
 {
     juce::ScopedNoDenormals noDenormals;
     juce::SpinLock::ScopedTryLockType lock (engineLock);
-    if (lock.isLocked() && engine != nullptr)
+    if (! lock.isLocked() || engine == nullptr) return;
+    const auto mode = routingMode->getIndex();
+    if (mode == 0 || audio.getNumSamples() > dryFloat.getNumSamples()
+        || audio.getNumChannels() > dryFloat.getNumChannels())
+    {
         engine->processBlock (audio, midi);
-    // Missing engine or lock contention: safe dry pass-through, no allocations.
+        return;
+    }
+
+    const int channels = audio.getNumChannels();
+    const int samples = audio.getNumSamples();
+    for (int ch = 0; ch < channels; ++ch)
+        dryFloat.copyFrom (ch, 0, audio, ch, 0, samples);
+    engine->processBlock (audio, midi);
+    const float wet = juce::jlimit (0.0f, 1.0f, parallelBlend->get());
+    for (int ch = 0; ch < channels; ++ch)
+    {
+        audio.applyGain (ch, 0, samples, wet);
+        audio.addFrom (ch, 0, dryFloat, ch, 0, samples, 1.0f - wet);
+    }
+    // Parallel mode = original full serial pedalboard + direct signal.
+    // No stage reorder, no changes to the original AU or factory presets.
 }
 
 void PedalLegendsBridgeProcessor::processBlock (juce::AudioBuffer<double>& audio, juce::MidiBuffer& midi)
 {
     juce::ScopedNoDenormals noDenormals;
     juce::SpinLock::ScopedTryLockType lock (engineLock);
-    if (lock.isLocked() && engine != nullptr && engine->supportsDoublePrecisionProcessing())
+    if (! lock.isLocked() || engine == nullptr || ! engine->supportsDoublePrecisionProcessing())
+        return; // preserves existing double-precision safety fallback
+    if (routingMode->getIndex() == 0 || audio.getNumSamples() > dryDouble.getNumSamples()
+        || audio.getNumChannels() > dryDouble.getNumChannels())
+    {
         engine->processBlock (audio, midi);
-    // Dry pass-through when the hosted AU is float-only.
+        return;
+    }
+    const int channels = audio.getNumChannels();
+    const int samples = audio.getNumSamples();
+    for (int ch = 0; ch < channels; ++ch)
+        dryDouble.copyFrom (ch, 0, audio, ch, 0, samples);
+    engine->processBlock (audio, midi);
+    const double wet = juce::jlimit (0.0, 1.0, (double) parallelBlend->get());
+    for (int ch = 0; ch < channels; ++ch)
+    {
+        audio.applyGain (ch, 0, samples, wet);
+        audio.addFrom (ch, 0, dryDouble, ch, 0, samples, 1.0 - wet);
+    }
 }
 
 void PedalLegendsBridgeProcessor::handleAsyncUpdate()
@@ -171,6 +217,10 @@ void PedalLegendsBridgeProcessor::getStateInformation (juce::MemoryBlock& out)
     stream.writeInt ((int) stateMagic);
     stream.writeInt ((int) snapshot.getSize());
     stream.write (snapshot.getData(), snapshot.getSize());
+    // Backwards-compatible extension: previous PLB1 snapshots remain readable.
+    stream.writeInt (0x504C5231); // PLR1
+    stream.writeInt (routingMode->getIndex());
+    stream.writeFloat (parallelBlend->get());
 }
 
 void PedalLegendsBridgeProcessor::setStateInformation (const void* data, int dataSize)
@@ -183,7 +233,17 @@ void PedalLegendsBridgeProcessor::setStateInformation (const void* data, int dat
     juce::MemoryBlock snapshot;
     snapshot.setSize ((size_t) size, false);
     if (stream.read (snapshot.getData(), (size_t) size) != size) return;
-
+    if (stream.getNumBytesRemaining() >= 12 && stream.readInt() == 0x504C5231)
+    {
+        const int restoredMode = juce::jlimit (0, 1, stream.readInt());
+        const float restoredBlend = juce::jlimit (0.0f, 1.0f, stream.readFloat());
+        routingMode->setValueNotifyingHost ((float) restoredMode);
+        parallelBlend->setValueNotifyingHost (restoredBlend);
+    }
+    else
+    {
+        routingMode->setValueNotifyingHost (0.0f); // old session => serial
+    }
     const juce::SpinLock::ScopedLockType lock (engineLock);
     savedEngineState = snapshot;
     if (engine != nullptr)
