@@ -128,6 +128,12 @@ void PedalLegendsBridgeProcessor::refreshStatus (const juce::String& newStatus)
 
 void PedalLegendsBridgeProcessor::startOriginalAU()
 {
+#if JUCE_WINDOWS
+    refreshStatus (juce::String::fromUTF8 (
+        u8"Windows VST3 (développement) : moteur DSP des 40 pédales non encore porté. "
+        u8"Cette version n'effectue pas le traitement des pédales."));
+    return;
+#else
     // Never trigger a scan of all plugins' binaries: enumerate registered AU IDs
     // and inspect only the exact PluginMaker identity.
     auto* format = formatManager.getFormat (0);
@@ -175,6 +181,8 @@ void PedalLegendsBridgeProcessor::startOriginalAU()
                 self->finishCreation (std::move (instance), error);
         });
 }
+
+#endif // JUCE_WINDOWS
 
 void PedalLegendsBridgeProcessor::finishCreation (
     std::unique_ptr<juce::AudioPluginInstance> instance, const juce::String& error)
