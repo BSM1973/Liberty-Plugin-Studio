@@ -87,7 +87,7 @@ void PedalLegendsBridgeProcessor::startOriginalAU()
     auto* format = formatManager.getFormat (0);
     if (format == nullptr)
     {
-        refreshStatus ("Hébergement Audio Unit non disponible.");
+        refreshStatus (juce::String::fromUTF8 (u8"Hébergement Audio Unit non disponible."));
         return;
     }
 
@@ -114,11 +114,11 @@ void PedalLegendsBridgeProcessor::startOriginalAU()
 
     if (matches.isEmpty())
     {
-        refreshStatus ("Moteur original introuvable : installez LIBERTY_PEDAL_LEGENDS.component (aufx/yZPb/Plmk).");
+        refreshStatus (juce::String::fromUTF8 (u8"Moteur original introuvable : installez LIBERTY_PEDAL_LEGENDS.component (aufx/yZPb/Plmk)."));
         return;
     }
 
-    refreshStatus ("Chargement du moteur audio d'origine...");
+    refreshStatus (juce::String::fromUTF8 (u8"Chargement du moteur audio d'origine..."));
     const auto description = *matches.getFirst();
     auto weak = juce::WeakReference<PedalLegendsBridgeProcessor> (this);
     formatManager.createPluginInstanceAsync (
@@ -135,7 +135,7 @@ void PedalLegendsBridgeProcessor::finishCreation (
 {
     if (instance == nullptr)
     {
-        refreshStatus ("Échec du chargement de l'AU original : " + error);
+        refreshStatus (juce::String::fromUTF8 (u8"Échec du chargement de l'AU original : ") + error);
         return;
     }
 
@@ -150,7 +150,7 @@ void PedalLegendsBridgeProcessor::finishCreation (
         const juce::SpinLock::ScopedLockType lock (engineLock);
         engine = std::move (instance);
     }
-    refreshStatus ("Moteur original chargé · 40 pédales disponibles dans son interface.");
+    refreshStatus (juce::String::fromUTF8 (u8"Moteur original chargé - 40 pédales disponibles dans son interface."));
 }
 
 void PedalLegendsBridgeProcessor::restoreSnapshot (juce::AudioPluginInstance& destination)
