@@ -18,6 +18,10 @@ private:
     PedalLegendsBridgeProcessor& processor;
     std::unique_ptr<juce::AudioProcessorEditor> originalEditor;
     juce::Label statusLabel;
+    juce::Label routingTitle;
+    juce::Label blendTitle;
+    juce::ComboBox routingSelector;
+    juce::Slider blendSlider;
     bool updatingChildLayout = false;
     int pendingWidth = 0;
     int pendingHeight = 0;
