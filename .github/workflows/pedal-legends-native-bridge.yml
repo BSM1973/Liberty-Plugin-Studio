@@ -44,6 +44,16 @@ jobs:
             codesign --force --deep --sign - "$dir"
             ditto "$dir" "$RUNNER_TEMP/pedal-artifacts/$(basename "$dir")"
           done < <(find "$RUNNER_TEMP/pedal-build" -type d \( -name '*.component' -o -name '*.vst3' \) -print0)
+      - name: Validate new AU with auval (original DSP not installed on runner)
+        shell: bash
+        run: |
+          set -euo pipefail
+          AU=$(find "$RUNNER_TEMP/pedal-artifacts" -type d -name '*.component' -print -quit)
+          test -n "$AU"
+          mkdir -p "$HOME/Library/Audio/Plug-Ins/Components"
+          ditto "$AU" "$HOME/Library/Audio/Plug-Ins/Components/$(basename "$AU")"
+          killall -9 AudioComponentRegistrar 2>/dev/null || true
+          /usr/bin/auval -v aufx PdLg LbMS
       - name: Upload native builds
         uses: actions/upload-artifact@v4
         with:
