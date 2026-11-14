@@ -5,7 +5,7 @@ PedalLegendsBridgeEditor::PedalLegendsBridgeEditor (PedalLegendsBridgeProcessor&
 {
     statusLabel.setJustificationType (juce::Justification::centred);
     statusLabel.setColour (juce::Label::textColourId, juce::Colours::white);
-    statusLabel.setFont (juce::Font (juce::FontOptions (15.0f)));
+    statusLabel.setFont (juce::Font (juce::FontOptions ("Arial", 15.0f, juce::Font::plain)));
     addAndMakeVisible (statusLabel);
     setSize (1100, 720);
     startTimerHz (5);
