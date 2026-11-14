@@ -35,6 +35,66 @@ LOG="/Library/Logs/Pedal-Legends-Installation-Systeme.log"
       fi
     fi
   fi
+
+  # Optional original PluginMaker AU WebView patch; audio binary remains unchanged.
+  UI_ASSETS="/Library/Application Support/Liberty Music Software/Pedal Legends/UI"
+  test -f "$UI_ASSETS/lms-layout-v6.js"
+  test -f "$UI_ASSETS/lms-layout-v6.css"
+  ORIGINAL_SYSTEM="/Library/Audio/Plug-Ins/Components/LIBERTY_PEDAL_LEGENDS.component"
+  ORIGINAL_USER=""
+  if [[ -n "${USER_HOME:-}" ]]; then
+    ORIGINAL_USER="$USER_HOME/Library/Audio/Plug-Ins/Components/LIBERTY_PEDAL_LEGENDS.component"
+  fi
+  PATCH_COUNT=0
+  for ORIGINAL in "$ORIGINAL_SYSTEM" "$ORIGINAL_USER"; do
+    [[ -n "$ORIGINAL" && -d "$ORIGINAL" ]] || continue
+    INFO="$ORIGINAL/Contents/Info.plist"
+    [[ -f "$INFO" ]] || continue
+    ORIGINAL_MFR=$(/usr/libexec/PlistBuddy -c 'Print :AudioComponents:0:manufacturer' "$INFO" 2>/dev/null || true)
+    ORIGINAL_SUB=$(/usr/libexec/PlistBuddy -c 'Print :AudioComponents:0:subtype' "$INFO" 2>/dev/null || true)
+    if [[ "$ORIGINAL_MFR" != "Plmk" || "$ORIGINAL_SUB" != "yZPb" ]]; then
+      echo "Skipping unrelated AU: $ORIGINAL"
+      continue
+    fi
+    WEB="$ORIGINAL/Contents/Resources/web"
+    if [[ ! -f "$WEB/index.html" || ! -f "$WEB/scripts/lms-encyclopedia.js" ]]; then
+      echo "Missing original web interface; leaving $ORIGINAL unchanged"
+      continue
+    fi
+    NAME=system
+    if [[ "$ORIGINAL" != "$ORIGINAL_SYSTEM" ]]; then NAME=user; fi
+    STAMP=$(date '+%Y%m%d-%H%M%S')
+    BACKUP_ROOT="/Library/Application Support/Liberty Music Software/Pedal Legends/Backups/$STAMP-$NAME"
+    mkdir -p "$BACKUP_ROOT"
+    /usr/bin/ditto "$ORIGINAL" "$BACKUP_ROOT/LIBERTY_PEDAL_LEGENDS.component"
+    patch_web() {
+      /bin/cp "$UI_ASSETS/lms-layout-v6.js" "$WEB/scripts/lms-layout-v6.js" || return 1
+      /bin/cp "$UI_ASSETS/lms-layout-v6.css" "$WEB/styles/lms-layout-v6.css" || return 1
+      if ! /usr/bin/grep -Fq 'lms-layout-v6.css' "$WEB/index.html"; then
+        /usr/bin/perl -0pi -e 's#</head>#<link href="styles/lms-layout-v6.css" rel="stylesheet" type="text/css" />\n</head>#' "$WEB/index.html" || return 1
+      fi
+      if ! /usr/bin/grep -Fq 'lms-layout-v6.js' "$WEB/index.html"; then
+        /usr/bin/perl -0pi -e 's#</body>#<script src="scripts/lms-layout-v6.js"></script>\n</body>#' "$WEB/index.html" || return 1
+      fi
+      /usr/bin/grep -Fq 'lms-layout-v6.css' "$WEB/index.html" || return 1
+      /usr/bin/grep -Fq 'lms-layout-v6.js' "$WEB/index.html" || return 1
+      /usr/bin/codesign --force --deep --sign - "$ORIGINAL" || return 1
+      /usr/bin/codesign --verify --deep --strict "$ORIGINAL" || return 1
+      return 0
+    }
+    if ! patch_web; then
+      echo "ERROR: UI patch failed; restoring $ORIGINAL"
+      /bin/rm -rf "$ORIGINAL"
+      /usr/bin/ditto "$BACKUP_ROOT/LIBERTY_PEDAL_LEGENDS.component" "$ORIGINAL"
+      exit 1
+    fi
+    echo "Original AU WebView patched: $ORIGINAL"
+    echo "Original AU backup: $BACKUP_ROOT"
+    PATCH_COUNT=$((PATCH_COUNT+1))
+  done
+  if [[ "$PATCH_COUNT" -eq 0 ]]; then
+    echo "WARNING: original PluginMaker AU not found; no language control patch applied."
+  fi
   /usr/bin/killall -9 AudioComponentRegistrar 2>/dev/null || true
   echo "INSTALLATION OK"
 } >> "$LOG" 2>&1
