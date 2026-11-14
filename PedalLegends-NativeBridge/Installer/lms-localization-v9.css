@@ -96,3 +96,38 @@
 #main .liberty-root .panel-topline button {
     white-space: nowrap;
 }
+
+
+/* V10 — history action: the whole visible button is the click target. */
+#main .edit-panel .panel-topline .lms-focused-history {
+    position: relative !important;
+    z-index: 99 !important;
+    pointer-events: auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 44px !important;
+    min-width: 188px !important;
+    cursor: pointer !important;
+    box-sizing: border-box !important;
+    white-space: normal !important;
+    text-align: center !important;
+}
+#main .edit-panel .panel-topline .lms-focused-history *,
+#main .edit-panel .panel-topline .lms-focused-history::before,
+#main .edit-panel .panel-topline .lms-focused-history::after {
+    pointer-events: none !important;
+}
+#main .edit-panel .panel-topline .lms-focused-history:focus-visible {
+    outline: 3px solid #163f32 !important;
+    outline-offset: 2px !important;
+}
+/* All English engravings/status flags below each pedal become legible in French. */
+#main .pedal-bottom-engraving,
+#main .footswitch-legend {
+    font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;
+    text-align: center !important;
+    letter-spacing: 0.2px !important;
+    white-space: nowrap !important;
+    max-width: 100% !important;
+}
