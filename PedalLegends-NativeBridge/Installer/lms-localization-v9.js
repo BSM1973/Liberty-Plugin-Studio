@@ -33,11 +33,14 @@
     'EXPANDABLE LIBRARY · NO PLACEHOLDER MODELS':
       'BIBLIOTHÈQUE ÉVOLUTIVE · AUCUN MODÈLE FICTIF',
     'PEDAL MODEL LIBRARY':'Bibliothèque de modèles de pédales',
+    'EVERY LISTED MODEL PROCESSES AUDIO.':'Chaque modèle proposé traite effectivement le signal audio.',
+    'AVAILABLE MATCHES':'RÉSULTATS DISPONIBLES',
     'LIBERTY FACTORY COLLECTION':'COLLECTION D’USINE LIBERTY',
     'DECADES OF GUITAR STORIES.':'Des décennies d’histoire de la guitare.',
     '10 CURATED CATEGORIES':'10 catégories sélectionnées',
     '13 EFFECT FAMILIES':'13 familles d’effets',
-    'ALL TONES':'TOUS LES SONS','FAVORITES':'FAVORIS','USER PRESETS':'PRESETS UTILISATEUR',
+    'ALL TONES':'TOUS LES SONS',
+    'LOAD INTO STAGE':'CHARGER DANS L’ÉTAGE','FAVORITES':'FAVORIS','USER PRESETS':'PRESETS UTILISATEUR',
     'INIT / RESET':'INITIALISER / RÉINITIALISER',
     'SEARCH PRESETS':'Rechercher des presets',
     'SEARCH PRESET NAMES, DESCRIPTIONS AND STYLES…':
@@ -107,7 +110,9 @@
     'FAVORITE':'FAVORI','FAVORITES':'FAVORIS',
     'RESET':'RÉINITIALISER','CLEAR':'EFFACER','LOAD':'CHARGER',
     'SELECT':'SÉLECTIONNER','SAVE AS':'ENREGISTRER SOUS',
-    'ALL':'TOUT','SEARCH':'RECHERCHER','NO RESULTS':'AUCUN RÉSULTAT',
+    'ALL':'TOUT',
+    '40 WORKING MODELS':'40 MODÈLES FONCTIONNELS',
+    'SEARCH PEDAL NAME, FAMILY OR YEAR':'Rechercher par nom, famille ou année','SEARCH':'RECHERCHER','NO RESULTS':'AUCUN RÉSULTAT',
     'COMPARE':'COMPARER','COPY SETTINGS':'COPIER LES RÉGLAGES',
     'PASTE SETTINGS':'COLLER LES RÉGLAGES',
     'A/B':'A/B'
@@ -133,6 +138,13 @@
     const key = normalized(clean);
     if (!key) return null;
     if (lookup.has(key)) return lookup.get(key);
+    // The factory browser contains 100 full English descriptive paragraphs.
+    // Match each paragraph against its unique published English opening.
+    if (clean.length > 35 && Array.isArray(window.LMS_PRESET_DESCRIPTIONS_FR)) {
+      for (const [englishStart, translated] of window.LMS_PRESET_DESCRIPTIONS_FR) {
+        if (clean.startsWith(englishStart)) return translated;
+      }
+    }
     let m;
     if ((m = clean.match(/^(\d+)\s+working models?$/i)))
       return m[1] + ' modèles fonctionnels';
