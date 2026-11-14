@@ -64,6 +64,21 @@ jobs:
             "$ROOT/Library/Application Support/Liberty Music Software/Pedal Legends/UI"
           node --check PedalLegends-NativeBridge/Installer/lms-layout-v6.js
           node --check PedalLegends-NativeBridge/Installer/lms-localization-v9.js
+          node --check PedalLegends-NativeBridge/Installer/lms-preset-descriptions-v9.js
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const vm = require('node:vm');
+          const source = fs.readFileSync('PedalLegends-NativeBridge/Installer/lms-preset-descriptions-v9.js','utf8');
+          const context = {
+            window:{}, document:{dispatchEvent:()=>{}}, Event:class {constructor(type){this.type=type}}
+          };
+          vm.runInNewContext(source,context);
+          const rows=context.window.LMS_PRESET_DESCRIPTIONS_FR;
+          if(!Array.isArray(rows) || rows.length!==100 ||
+             new Set(rows.map(r=>r[0])).size!==100)
+             throw new Error('100 unique French descriptions required');
+          console.log('V9: verified 100 translated preset descriptions');
+          NODE
           # Every historical pedal must carry one distinct technical translation.
           node PedalLegends-NativeBridge/Installer/check-40-technical-fr.js
 
@@ -71,6 +86,7 @@ jobs:
           /usr/bin/iconv -f UTF-8 -t UTF-8 PedalLegends-NativeBridge/Installer/lms-layout-v6.css >/dev/null
           /usr/bin/iconv -f UTF-8 -t UTF-8 PedalLegends-NativeBridge/Installer/lms-localization-v9.js >/dev/null
           /usr/bin/iconv -f UTF-8 -t UTF-8 PedalLegends-NativeBridge/Installer/lms-localization-v9.css >/dev/null
+          /usr/bin/iconv -f UTF-8 -t UTF-8 PedalLegends-NativeBridge/Installer/lms-preset-descriptions-v9.js >/dev/null
           cp PedalLegends-NativeBridge/Installer/lms-layout-v6.js \
             "$ROOT/Library/Application Support/Liberty Music Software/Pedal Legends/UI/lms-layout-v6.js"
           cp PedalLegends-NativeBridge/Installer/lms-layout-v6.css \
@@ -79,6 +95,8 @@ jobs:
             "$ROOT/Library/Application Support/Liberty Music Software/Pedal Legends/UI/lms-localization-v9.js"
           cp PedalLegends-NativeBridge/Installer/lms-localization-v9.css \
             "$ROOT/Library/Application Support/Liberty Music Software/Pedal Legends/UI/lms-localization-v9.css"
+          cp PedalLegends-NativeBridge/Installer/lms-preset-descriptions-v9.js \
+            "$ROOT/Library/Application Support/Liberty Music Software/Pedal Legends/UI/lms-preset-descriptions-v9.js"
           AU="$RUNNER_TEMP/pedal-artifacts/Pedal Legends.component"
           VST3="$RUNNER_TEMP/pedal-artifacts/Pedal Legends.vst3"
           test -d "$AU" && test -d "$VST3"
@@ -89,7 +107,7 @@ jobs:
           /bin/bash -n "$SCRIPTS/postinstall"
           /usr/bin/pkgbuild --root "$ROOT" --install-location / --scripts "$SCRIPTS" \
             --identifier com.libertymusicsoftware.pedallegends.nativebridge.installer \
-            --version 1.0.6 "$RUNNER_TEMP/pedal-artifacts/Pedal-Legends-Liberty-Music-Software-Systeme.pkg"
+            --version 1.0.7 "$RUNNER_TEMP/pedal-artifacts/Pedal-Legends-Liberty-Music-Software-Systeme.pkg"
           /usr/sbin/pkgutil --payload-files "$RUNNER_TEMP/pedal-artifacts/Pedal-Legends-Liberty-Music-Software-Systeme.pkg" | tee "$RUNNER_TEMP/pedal-pkg-files.txt"
           grep -F 'Library/Audio/Plug-Ins/Components/Pedal Legends.component/Contents/Info.plist' "$RUNNER_TEMP/pedal-pkg-files.txt"
           grep -F 'Library/Audio/Plug-Ins/VST3/Pedal Legends.vst3/Contents/Info.plist' "$RUNNER_TEMP/pedal-pkg-files.txt"
@@ -97,6 +115,7 @@ jobs:
           grep -F 'Library/Application Support/Liberty Music Software/Pedal Legends/UI/lms-layout-v6.css' "$RUNNER_TEMP/pedal-pkg-files.txt"
           grep -F 'Library/Application Support/Liberty Music Software/Pedal Legends/UI/lms-localization-v9.js' "$RUNNER_TEMP/pedal-pkg-files.txt"
           grep -F 'Library/Application Support/Liberty Music Software/Pedal Legends/UI/lms-localization-v9.css' "$RUNNER_TEMP/pedal-pkg-files.txt"
+          grep -F 'Library/Application Support/Liberty Music Software/Pedal Legends/UI/lms-preset-descriptions-v9.js' "$RUNNER_TEMP/pedal-pkg-files.txt"
       - name: Upload native builds
         uses: actions/upload-artifact@v4
         with:
