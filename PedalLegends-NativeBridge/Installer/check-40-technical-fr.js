@@ -1,6 +1,6 @@
-const fs = require('node:fs');
-const assert = require('node:assert/strict');
-const src = fs.readFileSync(__dirname + '/lms-layout-v6.js', 'utf8');
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const src = fs.readFileSync(new URL('./lms-layout-v6.js', import.meta.url), 'utf8');
 const tag = 'const technicalFrench = ';
 const start = src.indexOf(tag);
 const end = src.indexOf(';\n  function translateTechnicalDescription', start);
