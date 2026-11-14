@@ -1,0 +1,28 @@
+/* Pedal Legends V6: dock the language control in the unused middle of the board heading. */
+#main .board-heading .lms-encyclopedia-tool {
+  position: static !important;
+  top: auto !important; bottom: auto !important; left: auto !important; right: auto !important;
+  z-index: 3 !important; flex: 0 0 auto !important;
+  align-items: center !important; display: flex !important;
+  margin: 0 auto !important; padding: 2px 7px !important;
+  min-width: 100px !important; max-width: 128px !important; height: 27px !important;
+  background: #263c30 !important; border: 1px solid #8d996d !important;
+  border-radius: 5px !important; box-shadow: none !important;
+  font: 700 10px/1.15 -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;
+  color: #f5e9cc !important;
+}
+#main .board-heading .lms-encyclopedia-tool .lms-locale {
+  white-space: nowrap !important; color: #f5e9cc !important; font-size: 10px !important;
+}
+#main .board-heading .lms-encyclopedia-tool select {
+  height: 22px !important; width: 52px !important; padding: 1px 3px !important;
+  color: #243b2c !important; background: #f5ecd8 !important;
+  font: 700 10px/1.2 -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;
+}
+#main .board-heading .board-title,#main .board-heading .chain-legend {flex: 0 0 auto !important;}
+#main .liberty-footer,#main .liberty-footer span,#main .gate-caption,
+#main .master-signature span,#main .master-controls label {
+  font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;
+  font-variant-ligatures: normal !important;
+  text-rendering: optimizeLegibility !important;
+}
