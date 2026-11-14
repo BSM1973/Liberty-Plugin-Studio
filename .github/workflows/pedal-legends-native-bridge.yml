@@ -60,7 +60,15 @@ jobs:
           set -euo pipefail
           ROOT="$RUNNER_TEMP/pedal-pkg-root"
           SCRIPTS="$RUNNER_TEMP/pedal-pkg-scripts"
-          mkdir -p "$ROOT/Library/Audio/Plug-Ins/Components" "$ROOT/Library/Audio/Plug-Ins/VST3" "$SCRIPTS"
+          mkdir -p "$ROOT/Library/Audio/Plug-Ins/Components" "$ROOT/Library/Audio/Plug-Ins/VST3" "$SCRIPTS" \
+            "$ROOT/Library/Application Support/Liberty Music Software/Pedal Legends/UI"
+          node --check PedalLegends-NativeBridge/Installer/lms-layout-v6.js
+          /usr/bin/iconv -f UTF-8 -t UTF-8 PedalLegends-NativeBridge/Installer/lms-layout-v6.js >/dev/null
+          /usr/bin/iconv -f UTF-8 -t UTF-8 PedalLegends-NativeBridge/Installer/lms-layout-v6.css >/dev/null
+          cp PedalLegends-NativeBridge/Installer/lms-layout-v6.js \
+            "$ROOT/Library/Application Support/Liberty Music Software/Pedal Legends/UI/lms-layout-v6.js"
+          cp PedalLegends-NativeBridge/Installer/lms-layout-v6.css \
+            "$ROOT/Library/Application Support/Liberty Music Software/Pedal Legends/UI/lms-layout-v6.css"
           AU="$RUNNER_TEMP/pedal-artifacts/Pedal Legends.component"
           VST3="$RUNNER_TEMP/pedal-artifacts/Pedal Legends.vst3"
           test -d "$AU" && test -d "$VST3"
@@ -71,10 +79,12 @@ jobs:
           /bin/bash -n "$SCRIPTS/postinstall"
           /usr/bin/pkgbuild --root "$ROOT" --install-location / --scripts "$SCRIPTS" \
             --identifier com.libertymusicsoftware.pedallegends.nativebridge.installer \
-            --version 1.0.2 "$RUNNER_TEMP/pedal-artifacts/Pedal-Legends-Liberty-Music-Software-Systeme.pkg"
+            --version 1.0.3 "$RUNNER_TEMP/pedal-artifacts/Pedal-Legends-Liberty-Music-Software-Systeme.pkg"
           /usr/sbin/pkgutil --payload-files "$RUNNER_TEMP/pedal-artifacts/Pedal-Legends-Liberty-Music-Software-Systeme.pkg" | tee "$RUNNER_TEMP/pedal-pkg-files.txt"
           grep -F 'Library/Audio/Plug-Ins/Components/Pedal Legends.component/Contents/Info.plist' "$RUNNER_TEMP/pedal-pkg-files.txt"
           grep -F 'Library/Audio/Plug-Ins/VST3/Pedal Legends.vst3/Contents/Info.plist' "$RUNNER_TEMP/pedal-pkg-files.txt"
+          grep -F 'Library/Application Support/Liberty Music Software/Pedal Legends/UI/lms-layout-v6.js' "$RUNNER_TEMP/pedal-pkg-files.txt"
+          grep -F 'Library/Application Support/Liberty Music Software/Pedal Legends/UI/lms-layout-v6.css' "$RUNNER_TEMP/pedal-pkg-files.txt"
       - name: Upload native builds
         uses: actions/upload-artifact@v4
         with:
