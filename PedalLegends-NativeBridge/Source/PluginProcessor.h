@@ -37,6 +37,8 @@ public:
     // Only for use by the editor on the JUCE message thread.
     juce::AudioPluginInstance* getEngineForEditor() const noexcept { return engine.get(); }
     juce::String getStatus() const { return status; }
+    juce::AudioParameterChoice& getRoutingMode() const noexcept { return *routingMode; }
+    juce::AudioParameterFloat& getParallelBlend() const noexcept { return *parallelBlend; }
 
 private:
     void handleAsyncUpdate() override;
@@ -48,6 +50,10 @@ private:
     // The message thread owns these objects. The audio callback uses a TRY lock and
     // bypasses on contention; it never blocks on plugin creation or UI operations.
     juce::SpinLock engineLock;
+    juce::AudioParameterChoice* routingMode = nullptr;
+    juce::AudioParameterFloat* parallelBlend = nullptr;
+    juce::AudioBuffer<float> dryFloat;
+    juce::AudioBuffer<double> dryDouble;
     juce::AudioPluginFormatManager formatManager;
     std::unique_ptr<juce::AudioPluginInstance> engine;
     juce::MemoryBlock savedEngineState;
