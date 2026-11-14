@@ -14,6 +14,16 @@
     'A/B COMPARISON; BANK B ACTIVE':'Comparaison A/B : mémoire B active',
     'RESET MODEL':'RÉINIT. MODÈLE','COPY':'COPIER','PASTE':'COLLER',
     'EDIT PEDAL':'MODIFIER','ADD PEDAL':'AJOUTER',
+    'ORIGINAL MODEL · LMS':'MODÈLE ORIGINAL · LMS',
+    'ORIGINAL MODEL • LMS':'MODÈLE ORIGINAL · LMS',
+    'ENGAGED':'ACTIVÉE','BYPASS THIS PEDAL':'Désactiver cette pédale',
+    'ACTIVATE THIS PEDAL':'Activer cette pédale',
+    'REPLACE PEDAL IN STAGE':'Remplacer la pédale de l’étage',
+    'MASTER AUDIO CONTROLS':'Commandes audio principales',
+    'MOVE STAGE':'Déplacer l’étage',
+    'LEFT IN THE AUDIO CHAIN':'vers la gauche dans la chaîne audio',
+    'RIGHT IN THE AUDIO CHAIN':'vers la droite dans la chaîne audio',
+    'PEDAL':'PÉDALE',
     'LIBRARY':'BIBLIOTHÈQUE','REPLACE PEDAL':'REMPLACER LA PÉDALE',
     'PEDAL ON':'PÉDALE ACTIVE','PEDAL MIX':'MÉLANGE','PEDAL LEVEL':'NIVEAU',
     'FOCUSED EDITOR':'ÉDITEUR DE PÉDALE','SIGNAL STAGE':'ÉTAGE AUDIO',
@@ -259,6 +269,7 @@
     while ((node = walker.nextNode())) rewriteText(node, lang);
     for (const el of main.querySelectorAll('[title],[aria-label],[placeholder]'))
       rewriteAttributes(el, lang);
+    translatePedalFooters();
   }
   function schedule() {
     if (pending) return;
@@ -271,6 +282,40 @@
     observer.observe(main, {subtree:true,childList:true,characterData:true,attributes:true,
                             attributeFilter:['aria-label','title','placeholder']});
   }
+  // The original pedal detail editor button sometimes only reacts near its label.
+  // Capture clicks over the entire native React button and call the existing history
+  // event directly, without changing the pedal model or any processor parameter.
+  document.addEventListener('click', event => {
+    if (!(event.target instanceof Element)) return;
+    const button = event.target.closest('#main .edit-panel .panel-topline .lms-focused-history');
+    if (!button) return;
+    const panel = button.closest('.edit-panel');
+    const name = panel?.querySelector('.panel-topline h2')?.textContent?.trim();
+    if (!name) return; // Leave the original React handler intact as fallback.
+    const overline = panel.querySelector('.panel-topline .small-overline')?.textContent || '';
+    const match = overline.match(/(\d{1,2})\s*$/);
+    const slot = match ? Math.max(0, Number(match[1]) - 1) : undefined;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    window.dispatchEvent(new CustomEvent('lms-open-history', {detail:{name,slot}}));
+  }, true);
+
+  // Explicitly handle composite engravings and dynamic pedal status below all
+  // eight pedal slots; translating only the word "ORIGINAL MODEL" was insufficient.
+  function translatePedalFooters() {
+    const frActive = language() === 'fr';
+    for (const el of document.querySelectorAll('#main .pedal-bottom-engraving')) {
+      const desired = frActive ? 'MODÈLE ORIGINAL · LMS' : 'ORIGINAL MODEL · LMS';
+      if (el.textContent !== desired) el.textContent = desired;
+    }
+    for (const el of document.querySelectorAll('#main .footswitch-legend')) {
+      const active = ['ENGAGED','ACTIVÉE','ACTIVÉ','ACTIF'].includes(el.textContent.trim().toUpperCase());
+      const desired = frActive ? (active ? 'ACTIVÉE' : 'DÉSACTIVÉE')
+                               : (active ? 'ENGAGED' : 'BYPASS');
+      if (el.textContent !== desired) el.textContent = desired;
+    }
+  }
+
   document.addEventListener('lms-preset-translations-ready', schedule);
   document.addEventListener('change', event => {
     if (event.target?.closest?.('.lms-encyclopedia-tool')) schedule();
