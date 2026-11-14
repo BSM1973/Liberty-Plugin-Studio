@@ -84,7 +84,7 @@ void PedalLegendsBridgeProcessor::startOriginalAU()
 {
     // Never trigger a scan of all plugins' binaries: enumerate registered AU IDs
     // and inspect only the exact PluginMaker identity.
-    auto* format = formatManager.getFormat ("AudioUnit");
+    auto* format = formatManager.getFormat (0);
     if (format == nullptr)
     {
         refreshStatus ("Hébergement Audio Unit non disponible.");
