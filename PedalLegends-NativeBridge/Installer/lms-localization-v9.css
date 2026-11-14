@@ -1,0 +1,98 @@
+/* Pedal Legends V9 — readability, arrows and French layout.
+   The original beige/cream board is retained; never alter DSP or parameter elements. */
+#main .liberty-root .strip-label,
+#main .liberty-root .strip-label b,
+#main .liberty-root .master-controls .knob-label,
+#main .liberty-root .master-controls .knob-value,
+#main .liberty-root .master-meters .peak-meter,
+#main .liberty-root .master-meters .peak-meter *,
+#main .liberty-root .master-meters .small-overline,
+#main .liberty-root .noise-gate-controls .small-overline,
+#main .liberty-root .noise-gate-controls .knob-label,
+#main .liberty-root .noise-gate-controls .knob-value,
+#main .liberty-root .noise-gate-controls .gate-caption,
+#main .liberty-root .master-signature span,
+#main .liberty-root .master-signature strong,
+#main .liberty-root .liberty-footer,
+#main .liberty-root .liberty-footer span,
+#main .liberty-root .liberty-footer i {
+    color: #050505 !important;
+    opacity: 1 !important;
+    text-shadow: none !important;
+    font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;
+}
+#main .liberty-root .strip-label,
+#main .liberty-root .master-controls .knob-label,
+#main .liberty-root .noise-gate-controls .small-overline,
+#main .liberty-root .noise-gate-controls .gate-caption {
+    font-weight: 800 !important;
+    letter-spacing: 0.35px !important;
+}
+#main .liberty-root .master-controls .knob-label {font-size: 8px !important;}
+#main .liberty-root .noise-gate-controls .gate-caption {font-size: 9px !important;}
+#main .liberty-root .liberty-footer {
+    font-weight: 800 !important;
+    font-size: 8px !important;
+    letter-spacing: 0.25px !important;
+}
+
+/* Arrow glyphs: center horizontally and vertically within both square buttons. */
+#main .liberty-root button.arrow-button,
+#main .liberty-root .move-actions button.arrow-button,
+#main .liberty-root .preset-console-actions button.arrow-button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    padding: 0 !important;
+    margin-block: 0 !important;
+    line-height: 1 !important;
+    font-family: Georgia, 'Times New Roman', serif !important;
+    font-size: 23px !important;
+    font-weight: 600 !important;
+}
+#main .liberty-root .move-actions,
+#main .liberty-root .preset-console-actions {
+    align-items: center !important;
+}
+#main .liberty-root .slot-actions > button {
+    display: inline-flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    padding: 0 6px !important;
+    line-height: 1.15 !important;
+}
+#main .liberty-root .slot-actions > button:not(.arrow-button) {
+    font-size: 8px !important;
+    letter-spacing: 0.12px !important;
+}
+#main .liberty-root .edit-actions button,
+#main .liberty-root .edit-panel button {
+    letter-spacing: 0.15px !important;
+}
+
+/* A/B controls keep the bank letters A and B. Only their tooltip is translated. */
+#main .liberty-root .ab-button {
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Browser + dialog: keep long French words legible without overwriting adjacent labels. */
+#main .liberty-root .preset-categories > button,
+#main .liberty-root .library-panel button,
+#main .liberty-root .preset-browser-panel button {
+    text-overflow: ellipsis;
+}
+#main .liberty-root .preset-categories > button {
+    font-size: 9px !important;
+    letter-spacing: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+}
+#main .liberty-root .preset-categories > button b {
+    flex: 0 0 auto !important;
+}
+#main .liberty-root .panel-topline button {
+    white-space: nowrap;
+}

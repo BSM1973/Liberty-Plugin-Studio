@@ -1,0 +1,118 @@
+#!/bin/bash
+# Pedal Legends JUCE native - postinstallation
+# Only relocates *duplicate bridge copies* in the user's Library.
+set -euo pipefail
+LOG="/Library/Logs/Pedal-Legends-Installation-Systeme.log"
+{
+  echo "=== Pedal Legends | $(date) ==="
+  SYSTEM_AU="/Library/Audio/Plug-Ins/Components/Pedal Legends.component"
+  SYSTEM_VST3="/Library/Audio/Plug-Ins/VST3/Pedal Legends.vst3"
+  test -d "$SYSTEM_AU"
+  test -d "$SYSTEM_VST3"
+  /usr/bin/codesign --verify --deep --strict "$SYSTEM_AU"
+  /usr/bin/codesign --verify --deep --strict "$SYSTEM_VST3"
+  FOUND=$(/usr/libexec/PlistBuddy -c 'Print :AudioComponents:0:manufacturer' "$SYSTEM_AU/Contents/Info.plist")
+  test "$FOUND" = "LbMS"
+  echo "AU système: $SYSTEM_AU"
+  echo "VST3 système: $SYSTEM_VST3"
+  echo "Fabricant: $FOUND"
+  USER_NAME="$(/usr/bin/stat -f '%Su' /dev/console 2>/dev/null || true)"
+  if [[ -n "$USER_NAME" && "$USER_NAME" != "root" && "$USER_NAME" != "loginwindow" ]]; then
+    USER_HOME=$(/usr/bin/dscl . -read "/Users/$USER_NAME" NFSHomeDirectory 2>/dev/null | /usr/bin/awk '{print $2}')
+    if [[ -n "$USER_HOME" && -d "$USER_HOME/Library/Audio/Plug-Ins" ]]; then
+      BACKUP="$USER_HOME/Desktop/PEDAL-LEGENDS-DOUBLONS-$(date '+%Y%m%d-%H%M%S')"
+      USER_AU="$USER_HOME/Library/Audio/Plug-Ins/Components/Pedal Legends.component"
+      USER_VST3="$USER_HOME/Library/Audio/Plug-Ins/VST3/Pedal Legends.vst3"
+      for ITEM in "$USER_AU" "$USER_VST3"; do
+        if [[ -e "$ITEM" ]]; then
+          mkdir -p "$BACKUP"
+          /bin/mv "$ITEM" "$BACKUP/$(basename "$ITEM")"
+          echo "Ancienne copie utilisateur sauvegardée: $ITEM -> $BACKUP"
+        fi
+      done
+      if [[ -d "$BACKUP" ]]; then
+        /usr/sbin/chown -R "$USER_NAME" "$BACKUP"
+      fi
+    fi
+  fi
+
+  # Optional original PluginMaker AU WebView patch; audio binary remains unchanged.
+  UI_ASSETS="/Library/Application Support/Liberty Music Software/Pedal Legends/UI"
+  test -f "$UI_ASSETS/lms-layout-v6.js"
+  test -f "$UI_ASSETS/lms-layout-v6.css"
+  test -f "$UI_ASSETS/lms-localization-v9.js"
+  test -f "$UI_ASSETS/lms-localization-v9.css"
+  test -f "$UI_ASSETS/lms-preset-descriptions-v9.js"
+  ORIGINAL_SYSTEM="/Library/Audio/Plug-Ins/Components/LIBERTY_PEDAL_LEGENDS.component"
+  ORIGINAL_USER=""
+  if [[ -n "${USER_HOME:-}" ]]; then
+    ORIGINAL_USER="$USER_HOME/Library/Audio/Plug-Ins/Components/LIBERTY_PEDAL_LEGENDS.component"
+  fi
+  PATCH_COUNT=0
+  for ORIGINAL in "$ORIGINAL_SYSTEM" "$ORIGINAL_USER"; do
+    [[ -n "$ORIGINAL" && -d "$ORIGINAL" ]] || continue
+    INFO="$ORIGINAL/Contents/Info.plist"
+    [[ -f "$INFO" ]] || continue
+    ORIGINAL_MFR=$(/usr/libexec/PlistBuddy -c 'Print :AudioComponents:0:manufacturer' "$INFO" 2>/dev/null || true)
+    ORIGINAL_SUB=$(/usr/libexec/PlistBuddy -c 'Print :AudioComponents:0:subtype' "$INFO" 2>/dev/null || true)
+    if [[ "$ORIGINAL_MFR" != "Plmk" || "$ORIGINAL_SUB" != "yZPb" ]]; then
+      echo "Skipping unrelated AU: $ORIGINAL"
+      continue
+    fi
+    WEB="$ORIGINAL/Contents/Resources/web"
+    if [[ ! -f "$WEB/index.html" || ! -f "$WEB/scripts/lms-encyclopedia.js" ]]; then
+      echo "Missing original web interface; leaving $ORIGINAL unchanged"
+      continue
+    fi
+    NAME=system
+    if [[ "$ORIGINAL" != "$ORIGINAL_SYSTEM" ]]; then NAME=user; fi
+    STAMP=$(date '+%Y%m%d-%H%M%S')
+    BACKUP_ROOT="/Library/Application Support/Liberty Music Software/Pedal Legends/Backups/$STAMP-$NAME"
+    mkdir -p "$BACKUP_ROOT"
+    /usr/bin/ditto "$ORIGINAL" "$BACKUP_ROOT/LIBERTY_PEDAL_LEGENDS.component"
+    patch_web() {
+      /bin/cp "$UI_ASSETS/lms-layout-v6.js" "$WEB/scripts/lms-layout-v6.js" || return 1
+      /bin/cp "$UI_ASSETS/lms-layout-v6.css" "$WEB/styles/lms-layout-v6.css" || return 1
+      /bin/cp "$UI_ASSETS/lms-localization-v9.js" "$WEB/scripts/lms-localization-v9.js" || return 1
+      /bin/cp "$UI_ASSETS/lms-localization-v9.css" "$WEB/styles/lms-localization-v9.css" || return 1
+      /bin/cp "$UI_ASSETS/lms-preset-descriptions-v9.js" "$WEB/scripts/lms-preset-descriptions-v9.js" || return 1
+      if ! /usr/bin/grep -Fq 'lms-layout-v6.css' "$WEB/index.html"; then
+        /usr/bin/perl -0pi -e 's#</head>#<link href="styles/lms-layout-v6.css" rel="stylesheet" type="text/css" />\n</head>#' "$WEB/index.html" || return 1
+      fi
+      if ! /usr/bin/grep -Fq 'lms-layout-v6.js' "$WEB/index.html"; then
+        /usr/bin/perl -0pi -e 's#</body>#<script src="scripts/lms-layout-v6.js"></script>\n</body>#' "$WEB/index.html" || return 1
+      fi
+      /usr/bin/grep -Fq 'lms-layout-v6.css' "$WEB/index.html" || return 1
+      if ! /usr/bin/grep -Fq 'lms-localization-v9.css' "$WEB/index.html"; then
+        /usr/bin/perl -0pi -e 's#</head>#<link href="styles/lms-localization-v9.css" rel="stylesheet" type="text/css" />\n</head>#' "$WEB/index.html" || return 1
+      fi
+      if ! /usr/bin/grep -Fq 'lms-localization-v9.js' "$WEB/index.html"; then
+        /usr/bin/perl -0pi -e 's#</body>#<script src="scripts/lms-localization-v9.js"></script>\n</body>#' "$WEB/index.html" || return 1
+      fi
+      /usr/bin/grep -Fq 'lms-layout-v6.js' "$WEB/index.html" || return 1
+      /usr/bin/grep -Fq 'lms-localization-v9.js' "$WEB/index.html" || return 1
+      if ! /usr/bin/grep -Fq 'lms-preset-descriptions-v9.js' "$WEB/index.html"; then
+        /usr/bin/perl -0pi -e 's#</body>#<script src="scripts/lms-preset-descriptions-v9.js"></script>\n</body>#' "$WEB/index.html" || return 1
+      fi
+      /usr/bin/grep -Fq 'lms-localization-v9.css' "$WEB/index.html" || return 1
+      /usr/bin/grep -Fq 'lms-preset-descriptions-v9.js' "$WEB/index.html" || return 1
+      /usr/bin/codesign --force --deep --sign - "$ORIGINAL" || return 1
+      /usr/bin/codesign --verify --deep --strict "$ORIGINAL" || return 1
+      return 0
+    }
+    if ! patch_web; then
+      echo "ERROR: UI patch failed; restoring $ORIGINAL"
+      /bin/rm -rf "$ORIGINAL"
+      /usr/bin/ditto "$BACKUP_ROOT/LIBERTY_PEDAL_LEGENDS.component" "$ORIGINAL"
+      exit 1
+    fi
+    echo "Original AU WebView patched: $ORIGINAL"
+    echo "Original AU backup: $BACKUP_ROOT"
+    PATCH_COUNT=$((PATCH_COUNT+1))
+  done
+  if [[ "$PATCH_COUNT" -eq 0 ]]; then
+    echo "WARNING: original PluginMaker AU not found; no language control patch applied."
+  fi
+  /usr/bin/killall -9 AudioComponentRegistrar 2>/dev/null || true
+  echo "INSTALLATION OK"
+} >> "$LOG" 2>&1
