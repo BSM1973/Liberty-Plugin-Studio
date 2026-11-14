@@ -64,7 +64,7 @@ jobs:
             "$ROOT/Library/Application Support/Liberty Music Software/Pedal Legends/UI"
           node --check PedalLegends-NativeBridge/Installer/lms-layout-v6.js
           # Every historical pedal must carry one distinct technical translation.
-          node -e "const s=require('fs').readFileSync('PedalLegends-NativeBridge/Installer/lms-layout-v6.js','utf8');const m=s.match(/^  \\"[0-9]+\\":/gm)||[];if(m.length!==40||!s.includes('translateTechnicalDescription(lang)'))process.exit(1);console.log('40 fiches techniques FR vérifiées')"
+          node PedalLegends-NativeBridge/Installer/check-40-technical-fr.js
 
           /usr/bin/iconv -f UTF-8 -t UTF-8 PedalLegends-NativeBridge/Installer/lms-layout-v6.js >/dev/null
           /usr/bin/iconv -f UTF-8 -t UTF-8 PedalLegends-NativeBridge/Installer/lms-layout-v6.css >/dev/null
