@@ -1,0 +1,37 @@
+name: Pedal Legends Windows VST3 (DSP port in progress)
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'PedalLegends-NativeBridge/**'
+      - '.github/workflows/pedal-legends-windows-vst3.yml'
+  pull_request:
+    paths:
+      - 'PedalLegends-NativeBridge/**'
+      - '.github/workflows/pedal-legends-windows-vst3.yml'
+
+jobs:
+  windows-vst3-compile:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Fetch JUCE 8.0.10
+        shell: pwsh
+        run: git clone --depth 1 --branch 8.0.10 https://github.com/juce-framework/JUCE.git "$env:RUNNER_TEMP\JUCE"
+      - name: Configure Windows x64
+        shell: pwsh
+        run: |
+          cmake -S PedalLegends-NativeBridge -B "$env:RUNNER_TEMP\pedal-windows-build" -G "Visual Studio 17 2022" -A x64 -DJUCE_DIR="$env:RUNNER_TEMP\JUCE"
+      - name: Compile VST3 (JUCE host infrastructure only)
+        shell: pwsh
+        run: cmake --build "$env:RUNNER_TEMP\pedal-windows-build" --config Release --target PedalLegendsBridge_VST3 --parallel 2
+      - name: Verify Windows VST3 structure and flag DSP-pending status
+        shell: pwsh
+        run: |
+          $plugins = @(Get-ChildItem "$env:RUNNER_TEMP\pedal-windows-build" -Recurse -Directory -Filter '*.vst3')
+          if ($plugins.Count -eq 0) { throw "No Windows VST3 bundle built" }
+          $plugins | ForEach-Object { Write-Output ("Found scaffold: " + $_.FullName) }
+          Write-Output "::warning::DSP port is incomplete: original PluginMaker Audio Unit cannot run on Windows. No customer release."
+          Add-Content $env:GITHUB_STEP_SUMMARY "Windows x64 VST3 infrastructure compiled. **Not a functional 40-pedal port**: native DSP sources/reimplementation required. No artifact will be published."
