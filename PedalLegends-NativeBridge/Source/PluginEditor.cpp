@@ -4,11 +4,11 @@ PedalLegendsBridgeEditor::PedalLegendsBridgeEditor (PedalLegendsBridgeProcessor&
     : AudioProcessorEditor (&p), processor (p)
 {
     statusLabel.setJustificationType (juce::Justification::centred);
-    statusLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+    statusLabel.setColour (juce::Label::textColourId, juce::Colours::black);
     statusLabel.setFont (juce::Font (juce::FontOptions ("Arial", 15.0f, juce::Font::plain)));
     addAndMakeVisible (statusLabel);
     setResizable (false, false);
-    setSize (1100, 720);
+    setSize (1520, 1000);
     startTimerHz (5);
 }
 
@@ -34,12 +34,13 @@ void PedalLegendsBridgeEditor::timerCallback()
                 if (originalEditor != nullptr)
                 {
                     addAndMakeVisible (originalEditor.get());
+                    statusLabel.setVisible (false);
                     originalEditor->addComponentListener (this);
                     const auto pref = originalEditor->getBounds();
                     // The original AU has its own corner drag-resizer. Let its editor
                     // drive this wrapper's size instead of leaving empty blue space.
-                    setSize (juce::jmax (640, pref.getWidth() + 20),
-                             juce::jmax (480, pref.getHeight() + 86));
+                    setSize (juce::jlimit (800, 1800, juce::jmax (1520, pref.getWidth() + 80)),
+                             juce::jlimit (600, 1160, juce::jmax (1000, pref.getHeight() + 40)));
                     resized();
                 }
             }
@@ -49,11 +50,8 @@ void PedalLegendsBridgeEditor::timerCallback()
 
 void PedalLegendsBridgeEditor::paint (juce::Graphics& g)
 {
-    g.fillAll (juce::Colour (0xff15283d));
-    g.setColour (juce::Colour (0xffd5af72));
-    g.setFont (juce::Font (juce::FontOptions (17.0f, juce::Font::bold)));
-    g.drawFittedText ("LIBERTY MUSIC SOFTWARE - PEDAL LEGENDS", 18, 4, getWidth() - 36, 28,
-                      juce::Justification::centredLeft, 1);
+    // The original editor owns the entire visible surface. Never draw a blue wrapper.
+    g.fillAll (juce::Colour (0xffede4d0));
 }
 
 void PedalLegendsBridgeEditor::componentMovedOrResized (juce::Component& component,
@@ -69,8 +67,8 @@ void PedalLegendsBridgeEditor::componentMovedOrResized (juce::Component& compone
     if (childW < 320 || childH < 240)
         return;
 
-    pendingWidth = childW + 20;
-    pendingHeight = childH + 86;
+    pendingWidth = childW;
+    pendingHeight = childH;
     triggerAsyncUpdate();
 }
 
@@ -88,10 +86,8 @@ void PedalLegendsBridgeEditor::handleAsyncUpdate()
 void PedalLegendsBridgeEditor::resized()
 {
     juce::ScopedValueSetter<bool> guard (updatingChildLayout, true);
-    auto area = getLocalBounds().reduced (10);
-    area.removeFromTop (30);
-    auto footer = area.removeFromBottom (36);
-    statusLabel.setBounds (footer);
+    // No border, header or footer: the pedalboard exactly fills the host window.
+    statusLabel.setBounds (getLocalBounds().reduced (18));
     if (originalEditor != nullptr)
-        originalEditor->setBounds (area);
+        originalEditor->setBounds (getLocalBounds());
 }
