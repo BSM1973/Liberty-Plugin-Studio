@@ -1,0 +1,40 @@
+#!/bin/bash
+# Pedal Legends JUCE native - postinstallation
+# Only relocates *duplicate bridge copies* in the user's Library.
+set -euo pipefail
+LOG="/Library/Logs/Pedal-Legends-Installation-Systeme.log"
+{
+  echo "=== Pedal Legends | $(date) ==="
+  SYSTEM_AU="/Library/Audio/Plug-Ins/Components/Pedal Legends.component"
+  SYSTEM_VST3="/Library/Audio/Plug-Ins/VST3/Pedal Legends.vst3"
+  test -d "$SYSTEM_AU"
+  test -d "$SYSTEM_VST3"
+  /usr/bin/codesign --verify --deep --strict "$SYSTEM_AU"
+  /usr/bin/codesign --verify --deep --strict "$SYSTEM_VST3"
+  FOUND=$(/usr/libexec/PlistBuddy -c 'Print :AudioComponents:0:manufacturer' "$SYSTEM_AU/Contents/Info.plist")
+  test "$FOUND" = "LbMS"
+  echo "AU système: $SYSTEM_AU"
+  echo "VST3 système: $SYSTEM_VST3"
+  echo "Fabricant: $FOUND"
+  USER_NAME="$(/usr/bin/stat -f '%Su' /dev/console 2>/dev/null || true)"
+  if [[ -n "$USER_NAME" && "$USER_NAME" != "root" && "$USER_NAME" != "loginwindow" ]]; then
+    USER_HOME=$(/usr/bin/dscl . -read "/Users/$USER_NAME" NFSHomeDirectory 2>/dev/null | /usr/bin/awk '{print $2}')
+    if [[ -n "$USER_HOME" && -d "$USER_HOME/Library/Audio/Plug-Ins" ]]; then
+      BACKUP="$USER_HOME/Desktop/PEDAL-LEGENDS-DOUBLONS-$(date '+%Y%m%d-%H%M%S')"
+      USER_AU="$USER_HOME/Library/Audio/Plug-Ins/Components/Pedal Legends.component"
+      USER_VST3="$USER_HOME/Library/Audio/Plug-Ins/VST3/Pedal Legends.vst3"
+      for ITEM in "$USER_AU" "$USER_VST3"; do
+        if [[ -e "$ITEM" ]]; then
+          mkdir -p "$BACKUP"
+          /bin/mv "$ITEM" "$BACKUP/$(basename "$ITEM")"
+          echo "Ancienne copie utilisateur sauvegardée: $ITEM -> $BACKUP"
+        fi
+      done
+      if [[ -d "$BACKUP" ]]; then
+        /usr/sbin/chown -R "$USER_NAME" "$BACKUP"
+      fi
+    fi
+  fi
+  /usr/bin/killall -9 AudioComponentRegistrar 2>/dev/null || true
+  echo "INSTALLATION OK"
+} >> "$LOG" 2>&1
