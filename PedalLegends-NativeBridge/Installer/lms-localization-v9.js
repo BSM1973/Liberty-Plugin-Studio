@@ -271,6 +271,7 @@
     observer.observe(main, {subtree:true,childList:true,characterData:true,attributes:true,
                             attributeFilter:['aria-label','title','placeholder']});
   }
+  document.addEventListener('lms-preset-translations-ready', schedule);
   document.addEventListener('change', event => {
     if (event.target?.closest?.('.lms-encyclopedia-tool')) schedule();
   }, true);
