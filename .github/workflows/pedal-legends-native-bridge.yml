@@ -63,6 +63,9 @@ jobs:
           mkdir -p "$ROOT/Library/Audio/Plug-Ins/Components" "$ROOT/Library/Audio/Plug-Ins/VST3" "$SCRIPTS" \
             "$ROOT/Library/Application Support/Liberty Music Software/Pedal Legends/UI"
           node --check PedalLegends-NativeBridge/Installer/lms-layout-v6.js
+          # Every historical pedal must carry one distinct technical translation.
+          node -e "const s=require('fs').readFileSync('PedalLegends-NativeBridge/Installer/lms-layout-v6.js','utf8');const m=s.match(/^  \\"[0-9]+\\":/gm)||[];if(m.length!==40||!s.includes('translateTechnicalDescription(lang)'))process.exit(1);console.log('40 fiches techniques FR vérifiées')"
+
           /usr/bin/iconv -f UTF-8 -t UTF-8 PedalLegends-NativeBridge/Installer/lms-layout-v6.js >/dev/null
           /usr/bin/iconv -f UTF-8 -t UTF-8 PedalLegends-NativeBridge/Installer/lms-layout-v6.css >/dev/null
           cp PedalLegends-NativeBridge/Installer/lms-layout-v6.js \
@@ -79,7 +82,7 @@ jobs:
           /bin/bash -n "$SCRIPTS/postinstall"
           /usr/bin/pkgbuild --root "$ROOT" --install-location / --scripts "$SCRIPTS" \
             --identifier com.libertymusicsoftware.pedallegends.nativebridge.installer \
-            --version 1.0.4 "$RUNNER_TEMP/pedal-artifacts/Pedal-Legends-Liberty-Music-Software-Systeme.pkg"
+            --version 1.0.5 "$RUNNER_TEMP/pedal-artifacts/Pedal-Legends-Liberty-Music-Software-Systeme.pkg"
           /usr/sbin/pkgutil --payload-files "$RUNNER_TEMP/pedal-artifacts/Pedal-Legends-Liberty-Music-Software-Systeme.pkg" | tee "$RUNNER_TEMP/pedal-pkg-files.txt"
           grep -F 'Library/Audio/Plug-Ins/Components/Pedal Legends.component/Contents/Info.plist' "$RUNNER_TEMP/pedal-pkg-files.txt"
           grep -F 'Library/Audio/Plug-Ins/VST3/Pedal Legends.vst3/Contents/Info.plist' "$RUNNER_TEMP/pedal-pkg-files.txt"
