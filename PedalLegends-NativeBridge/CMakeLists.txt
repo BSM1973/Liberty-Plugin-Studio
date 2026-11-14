@@ -22,7 +22,7 @@ juce_add_plugin(PedalLegendsBridge
   PRODUCT_NAME "Pedal Legends"
   DESCRIPTION "Liberty Pedal Legends - native bridge for original Pedal Legends AU"
   IS_SYNTH FALSE
-  NEEDS_MIDI_INPUT TRUE
+  NEEDS_MIDI_INPUT FALSE
   NEEDS_MIDI_OUTPUT FALSE
   IS_MIDI_EFFECT FALSE
   PLUGINHOST_AU TRUE
