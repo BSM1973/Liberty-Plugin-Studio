@@ -107,7 +107,7 @@ jobs:
           /bin/bash -n "$SCRIPTS/postinstall"
           /usr/bin/pkgbuild --root "$ROOT" --install-location / --scripts "$SCRIPTS" \
             --identifier com.libertymusicsoftware.pedallegends.nativebridge.installer \
-            --version 1.0.7 "$RUNNER_TEMP/pedal-artifacts/Pedal-Legends-Liberty-Music-Software-Systeme.pkg"
+            --version 1.0.8 "$RUNNER_TEMP/pedal-artifacts/Pedal-Legends-Liberty-Music-Software-Systeme.pkg"
           /usr/sbin/pkgutil --payload-files "$RUNNER_TEMP/pedal-artifacts/Pedal-Legends-Liberty-Music-Software-Systeme.pkg" | tee "$RUNNER_TEMP/pedal-pkg-files.txt"
           grep -F 'Library/Audio/Plug-Ins/Components/Pedal Legends.component/Contents/Info.plist' "$RUNNER_TEMP/pedal-pkg-files.txt"
           grep -F 'Library/Audio/Plug-Ins/VST3/Pedal Legends.vst3/Contents/Info.plist' "$RUNNER_TEMP/pedal-pkg-files.txt"
