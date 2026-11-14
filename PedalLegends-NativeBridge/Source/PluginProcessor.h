@@ -54,7 +54,7 @@ private:
     double currentSampleRate = 44100.0;
     int currentBlockSize = 512;
     bool prepared = false;
-    juce::String status = "Recherche du moteur Pedal Legends original...";
+    juce::String status = juce::String::fromUTF8 (u8"Recherche du moteur Pedal Legends original...");
 
     JUCE_DECLARE_WEAK_REFERENCEABLE (PedalLegendsBridgeProcessor)
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PedalLegendsBridgeProcessor)
