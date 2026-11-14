@@ -180,9 +180,8 @@ void PedalLegendsBridgeProcessor::startOriginalAU()
             if (auto* self = weak.get())
                 self->finishCreation (std::move (instance), error);
         });
-}
-
 #endif // JUCE_WINDOWS
+}
 
 void PedalLegendsBridgeProcessor::finishCreation (
     std::unique_ptr<juce::AudioPluginInstance> instance, const juce::String& error)
