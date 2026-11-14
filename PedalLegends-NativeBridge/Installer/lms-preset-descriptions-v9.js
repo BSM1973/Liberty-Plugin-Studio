@@ -112,4 +112,5 @@
   }
   if (rows.length !== 100) throw Error('Pedal Legends: expected 100 translations, got ' + rows.length);
   window.LMS_PRESET_DESCRIPTIONS_FR = rows;
+  document.dispatchEvent(new Event('lms-preset-translations-ready'));
 })();
