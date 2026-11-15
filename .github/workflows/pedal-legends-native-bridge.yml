@@ -69,6 +69,8 @@ jobs:
           node --check PedalLegends-NativeBridge/Installer/lms-history-v121.js
           node --check PedalLegends-NativeBridge/Installer/lms-presets-v122.js
           node --check PedalLegends-NativeBridge/Installer/lms-browser-v122.js
+          node --check PedalLegends-NativeBridge/Installer/lms-canvas-fit.js
+          node PedalLegends-NativeBridge/Installer/test-canvas-fit.mjs
           node PedalLegends-NativeBridge/Installer/check-v122-presets.mjs
           node PedalLegends-NativeBridge/Installer/check-v121-ui.mjs
           node --check PedalLegends-NativeBridge/Installer/lms-preset-descriptions-v9.js
@@ -103,6 +105,7 @@ jobs:
           /usr/bin/iconv -f UTF-8 -t UTF-8 PedalLegends-NativeBridge/Installer/lms-presets-v122.js >/dev/null
           /usr/bin/iconv -f UTF-8 -t UTF-8 PedalLegends-NativeBridge/Installer/lms-browser-v122.js >/dev/null
           /usr/bin/iconv -f UTF-8 -t UTF-8 PedalLegends-NativeBridge/Installer/lms-browser-v122.css >/dev/null
+          /usr/bin/iconv -f UTF-8 -t UTF-8 PedalLegends-NativeBridge/Installer/lms-canvas-fit.js >/dev/null
           cp PedalLegends-NativeBridge/Installer/lms-layout-v6.js \
             "$ROOT/Library/Application Support/Liberty Music Software/Pedal Legends/UI/lms-layout-v6.js"
           cp PedalLegends-NativeBridge/Installer/lms-layout-v6.css \
@@ -121,6 +124,8 @@ jobs:
             cp "PedalLegends-NativeBridge/Installer/$PATCH" \
               "$ROOT/Library/Application Support/Liberty Music Software/Pedal Legends/UI/$PATCH"
           done
+          cp PedalLegends-NativeBridge/Installer/lms-canvas-fit.js \
+            "$ROOT/Library/Application Support/Liberty Music Software/Pedal Legends/UI/lms-canvas-fit.js"
           for PATCH in lms-presets-v122.js lms-browser-v122.js lms-browser-v122.css; do
             cp "PedalLegends-NativeBridge/Installer/$PATCH" \
               "$ROOT/Library/Application Support/Liberty Music Software/Pedal Legends/UI/$PATCH"
@@ -147,6 +152,7 @@ jobs:
           for PATCH in lms-presets-v122.js lms-browser-v122.js lms-browser-v122.css; do
             grep -F "Library/Application Support/Liberty Music Software/Pedal Legends/UI/$PATCH" "$RUNNER_TEMP/pedal-pkg-files.txt"
           done
+          grep -F 'Library/Application Support/Liberty Music Software/Pedal Legends/UI/lms-canvas-fit.js' "$RUNNER_TEMP/pedal-pkg-files.txt"
           grep -F 'Library/Application Support/Liberty Music Software/Pedal Legends/UI/lms-editor-v11.js' "$RUNNER_TEMP/pedal-pkg-files.txt"
           grep -F 'Library/Application Support/Liberty Music Software/Pedal Legends/UI/lms-editor-v11.css' "$RUNNER_TEMP/pedal-pkg-files.txt"
           for PATCH in lms-routing-v121.js lms-routing-v121.css lms-history-v121.js lms-history-v121.css; do
