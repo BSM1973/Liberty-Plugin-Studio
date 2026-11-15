@@ -89,17 +89,43 @@ void PedalLegendsBridgeProcessor::processBlock (juce::AudioBuffer<float>& audio,
 {
     juce::ScopedNoDenormals noDenormals;
     juce::SpinLock::ScopedTryLockType lock (engineLock);
-    if (! lock.isLocked() || engine == nullptr) return;
-    const auto mode = routingMode->getIndex();
-    if (mode == 0 || audio.getNumSamples() > dryFloat.getNumSamples()
-        || audio.getNumChannels() > dryFloat.getNumChannels())
+    if (! lock.isLocked() || engine == nullptr)
+        return; // preserve V10 safe direct pass-through on contention
+
+    const int mode = routingMode->getIndex();
+    const int channels = audio.getNumChannels();
+    const int samples = audio.getNumSamples();
+
+    // A *real* dual-pedal-path split: process two independent copies of the
+    // original AU on the same input, with each stage enabled only in its lane.
+    // Join at OUTPUT. Both lanes preserve the order of their assigned stages.
+    if (mode == 2 && twoBranchReady.load() && splitEngineA != nullptr
+        && splitEngineB != nullptr && channels <= branchBFloat.getNumChannels()
+        && samples <= branchBFloat.getNumSamples())
+    {
+        for (int ch = 0; ch < channels; ++ch)
+            branchBFloat.copyFrom (ch, 0, audio, ch, 0, samples);
+        juce::AudioBuffer<float> branchB (branchBFloat.getArrayOfWritePointers(), channels, samples);
+        juce::MidiBuffer secondaryMidi;
+        splitEngineA->processBlock (audio, midi);
+        splitEngineB->processBlock (branchB, secondaryMidi);
+        const float amountB = juce::jlimit (0.0f, 1.0f, parallelBlend->get());
+        for (int ch = 0; ch < channels; ++ch)
+        {
+            audio.applyGain (ch, 0, samples, 1.0f - amountB);
+            audio.addFrom (ch, 0, branchB, ch, 0, samples, amountB);
+        }
+        return;
+    }
+
+    // Compatibility: old projects stay serial, and split is safely serial
+    // until both AU instances and every Enabled mapping are ready.
+    if (mode != 1 || samples > dryFloat.getNumSamples()
+        || channels > dryFloat.getNumChannels())
     {
         engine->processBlock (audio, midi);
         return;
     }
-
-    const int channels = audio.getNumChannels();
-    const int samples = audio.getNumSamples();
     for (int ch = 0; ch < channels; ++ch)
         dryFloat.copyFrom (ch, 0, audio, ch, 0, samples);
     engine->processBlock (audio, midi);
@@ -109,8 +135,6 @@ void PedalLegendsBridgeProcessor::processBlock (juce::AudioBuffer<float>& audio,
         audio.applyGain (ch, 0, samples, wet);
         audio.addFrom (ch, 0, dryFloat, ch, 0, samples, 1.0f - wet);
     }
-    // Parallel mode = original full serial pedalboard + direct signal.
-    // No stage reorder, no changes to the original AU or factory presets.
 }
 
 void PedalLegendsBridgeProcessor::processBlock (juce::AudioBuffer<double>& audio, juce::MidiBuffer& midi)
@@ -118,15 +142,37 @@ void PedalLegendsBridgeProcessor::processBlock (juce::AudioBuffer<double>& audio
     juce::ScopedNoDenormals noDenormals;
     juce::SpinLock::ScopedTryLockType lock (engineLock);
     if (! lock.isLocked() || engine == nullptr || ! engine->supportsDoublePrecisionProcessing())
-        return; // preserves existing double-precision safety fallback
-    if (routingMode->getIndex() == 0 || audio.getNumSamples() > dryDouble.getNumSamples()
-        || audio.getNumChannels() > dryDouble.getNumChannels())
+        return;
+
+    const int mode = routingMode->getIndex();
+    const int channels = audio.getNumChannels();
+    const int samples = audio.getNumSamples();
+    if (mode == 2 && twoBranchReady.load() && splitEngineA != nullptr
+        && splitEngineB != nullptr && splitEngineA->supportsDoublePrecisionProcessing()
+        && splitEngineB->supportsDoublePrecisionProcessing()
+        && channels <= branchBDouble.getNumChannels()
+        && samples <= branchBDouble.getNumSamples())
+    {
+        for (int ch = 0; ch < channels; ++ch)
+            branchBDouble.copyFrom (ch, 0, audio, ch, 0, samples);
+        juce::AudioBuffer<double> branchB (branchBDouble.getArrayOfWritePointers(), channels, samples);
+        juce::MidiBuffer secondaryMidi;
+        splitEngineA->processBlock (audio, midi);
+        splitEngineB->processBlock (branchB, secondaryMidi);
+        const double amountB = juce::jlimit (0.0, 1.0, (double) parallelBlend->get());
+        for (int ch = 0; ch < channels; ++ch)
+        {
+            audio.applyGain (ch, 0, samples, 1.0 - amountB);
+            audio.addFrom (ch, 0, branchB, ch, 0, samples, amountB);
+        }
+        return;
+    }
+    if (mode != 1 || samples > dryDouble.getNumSamples()
+        || channels > dryDouble.getNumChannels())
     {
         engine->processBlock (audio, midi);
         return;
     }
-    const int channels = audio.getNumChannels();
-    const int samples = audio.getNumSamples();
     for (int ch = 0; ch < channels; ++ch)
         dryDouble.copyFrom (ch, 0, audio, ch, 0, samples);
     engine->processBlock (audio, midi);
