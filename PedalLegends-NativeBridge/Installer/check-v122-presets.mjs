@@ -55,7 +55,7 @@ const other=await ctx.window.fetch("not-a-preset.json");
 assert.equal((await other.json()).presets.length,101,"unrelated fetch untouched");
 
 const originalPattern="function bi(e){let t=WR(Ku(e)),o=new Set,n=[];";
-const patchedPattern="function bi(e){e=window.LMS_V122_augmentFactory?window.LMS_V122_augmentFactory(e):e;let t=WR(Ku(e)),o=new Set,n=[];";
+const patchedPattern="function bi(e){let t=WR(Ku(e));t=window.LMS_V122_augmentFactory?window.LMS_V122_augmentFactory(t):t;let o=new Set,n=[];";
 assert.equal(originalPattern.replace("function bi(e){",
    "function bi(e){e=window.LMS_V122_augmentFactory?window.LMS_V122_augmentFactory(e):e;"),
    patchedPattern,"native bundled parser signature");
