@@ -93,7 +93,7 @@ PedalLegendsBridgeEditor::PedalLegendsBridgeEditor (PedalLegendsBridgeProcessor&
     // The original pedalboard is 1440x960. The premium header is added
     // above it, not drawn over its controls.
     setResizable (false, false);
-    setSize (1280, 960);
+    setSize (1520, 1220);
     syncRoutingControls();
     startTimerHz (8);
 }
@@ -188,7 +188,10 @@ void PedalLegendsBridgeEditor::timerCallback()
                 originalEditor->addComponentListener (this);
                 statusLabel.setVisible (false);
                 routingDiagram.toFront (false);
-                // WKWebView is a native child view: JUCE affine transforms do not\n                // reliably scale it. Give it real, clipped board bounds; the\n                // WebView's own CSS layout scales the entire original UI.\n                resized();
+                const auto pref = originalEditor->getBounds();
+                setSize (juce::jlimit (1000, 1900, juce::jmax (1520, pref.getWidth())),
+                         juce::jlimit (760, 1320, juce::jmax (1220, pref.getHeight() + routingHeaderHeight)));
+                resized();
             }
         }
     }
@@ -232,15 +235,19 @@ void PedalLegendsBridgeEditor::componentMovedOrResized (juce::Component& child,
         return;
     if (child.getWidth() < 320 || child.getHeight() < 240)
         return;
-    // The board viewport owns the native window dimensions; do not allow
-    // a self-resizing AU editor to expand and conceal the header.
+    pendingWidth = child.getWidth();
+    pendingHeight = child.getHeight() + routingHeaderHeight;
     triggerAsyncUpdate();
 }
 
 void PedalLegendsBridgeEditor::handleAsyncUpdate()
 {
-    if (originalEditor != nullptr)
-        resized();
+    if (originalEditor == nullptr || pendingWidth <= 0 || pendingHeight <= 0)
+        return;
+    const int targetW = juce::jlimit (700, 2400, pendingWidth);
+    const int targetH = juce::jlimit (480, 1800, pendingHeight);
+    if (targetW != getWidth() || targetH != getHeight())
+        setSize (targetW, targetH);
 }
 
 void PedalLegendsBridgeEditor::resized()
@@ -271,11 +278,7 @@ void PedalLegendsBridgeEditor::resized()
 
     statusLabel.setBounds (board.reduced (25));
     if (originalEditor != nullptr)
-    {
-        originalEditor->setTransform (juce::AffineTransform());
         originalEditor->setBounds (board);
-        originalEditor->toBack();
-    }
     routingDiagram.setBounds (20, 119, juce::jmax (0, getWidth() - 40), 85);
     routingDiagram.toFront (false);
 }
