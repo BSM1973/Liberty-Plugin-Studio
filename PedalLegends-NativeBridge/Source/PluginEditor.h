@@ -32,7 +32,7 @@ private:
     PedalLegendsRoutingDiagram routingDiagram;
 
     bool updatingChildLayout = false;
-    int pendingWidth = 0;
-    int pendingHeight = 0;
+    int originalWidth = 1440;
+    int originalHeight = 960;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PedalLegendsBridgeEditor)
 };
