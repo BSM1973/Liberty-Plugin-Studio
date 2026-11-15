@@ -142,6 +142,31 @@
     });
   },false);
 
+  // Original preset previous/next arrows are also part of factory browsing.
+  // Keep the native Split routing synchronized when using them, not only when
+  // a card is clicked inside the full browser.
+  document.addEventListener("click",event=>{
+    const target=event.target;
+    if (!(target instanceof Element)) return;
+    if (target.closest("#main .preset-categories .init-preset-button")) {
+      queueMicrotask(()=>sendRoute({
+        mode:0,lanes:[0,0,0,0,1,1,1,1],balance:0.5,preset:"Init"
+      }));
+      return;
+    }
+    if (!target.closest("#main .preset-console-actions .arrow-button")) return;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      const name=document.querySelector("#main .current-preset-name")?.textContent?.trim();
+      if(!name) return;
+      const split=recipes().get(name);
+      if(split) {
+        sendRoute({mode:2,lanes:split.lanes,balance:split.balance,preset:name});
+      } else if([...recipes().values()].some(x=>x.source===name)) {
+        sendRoute({mode:0,lanes:[0,0,0,0,1,1,1,1],balance:0.5,preset:name});
+      }
+    }));
+  },false);
+
   document.addEventListener("lms-v122-presets-ready",schedule);
   window.addEventListener("lms-v122-presets-ready",schedule);
   const main=document.getElementById("main");
