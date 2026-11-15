@@ -63,13 +63,34 @@ namespace
             const NSRect webFrame = [web frame];
             const bool parentMatches = std::abs (NSWidth(parentBounds) - wantedW) <= 4.0
                                     && std::abs (NSHeight(parentBounds) - wantedH) <= 4.0;
-            if (parentMatches &&
-                (std::abs(NSWidth(webFrame) - NSWidth(parentBounds)) > 2.0
-              || std::abs(NSHeight(webFrame) - NSHeight(parentBounds)) > 2.0))
+            if (parentMatches)
             {
-                [web setFrame:parentBounds];
-                [web setNeedsLayout:YES];
-                settling = 0;
+                [web setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
+                if (std::abs(NSWidth(webFrame) - NSWidth(parentBounds)) > 2.0
+                 || std::abs(NSHeight(webFrame) - NSHeight(parentBounds)) > 2.0)
+                {
+                    [web setFrame:parentBounds];
+                    [web setNeedsLayout:YES];
+                    settling = 0;
+                }
+            }
+
+            // One lightweight trace per editor/size change, so if a specific
+            // AU uses a nonstandard parent hierarchy, we can diagnose it from
+            // the user's Mac without guessing another transform percentage.
+            if (changed)
+            {
+                const juce::String details =
+                    juce::Time::getCurrentTime().toISO8601 (true)
+                    + " JUCE=" + juce::String (wantedW) + "x" + juce::String (wantedH)
+                    + " parent=" + juce::String (NSWidth(parentBounds), 1) + "x"
+                    + juce::String (NSHeight(parentBounds), 1)
+                    + " WK=" + juce::String (NSWidth(webFrame), 1) + "x"
+                    + juce::String (NSHeight(webFrame), 1)
+                    + " matched=" + (parentMatches ? "yes" : "no") + "\\n";
+                const auto log = juce::File::getSpecialLocation (juce::File::userHomeDirectory)
+                                      .getChildFile ("Library/Logs/PedalLegends-Viewport.log");
+                log.appendText (details);
             }
         }
 
