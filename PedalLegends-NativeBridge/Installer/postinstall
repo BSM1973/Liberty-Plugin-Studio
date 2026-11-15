@@ -103,9 +103,9 @@ LOG="/Library/Logs/Pedal-Legends-Installation-Systeme.log"
           echo "Unknown original bundle version; refusing unsafe factory patch"
           return 1
         }
-        /usr/bin/perl -0pi -e 's#function bi\(e\)\{let t=WR\(Ku\(e\)\),o=new Set,n=\[\];#function bi(e){e=window.LMS_V122_augmentFactory?window.LMS_V122_augmentFactory(e):e;let t=WR(Ku(e)),o=new Set,n=[];#' "$BUNDLE" || return 1
+        /usr/bin/perl -0pi -e 's#function bi\(e\)\{let t=WR\(Ku\(e\)\),o=new Set,n=\[\];#function bi(e){let t=WR(Ku(e));t=window.LMS_V122_augmentFactory?window.LMS_V122_augmentFactory(t):t;let o=new Set,n=[];#' "$BUNDLE" || return 1
       fi
-      /usr/bin/grep -Fq 'function bi(e){e=window.LMS_V122_augmentFactory?' "$BUNDLE" || return 1
+      /usr/bin/grep -Fq 'function bi(e){let t=WR(Ku(e));t=window.LMS_V122_augmentFactory?' "$BUNDLE" || return 1
       # Preload our bundled preset augmenter BEFORE the original React app.
       if ! /usr/bin/grep -Fq 'lms-presets-v122.js' "$WEB/index.html"; then
         /usr/bin/perl -0pi -e 's#<script src="scripts/index.bundle.js"></script>#<script src="scripts/lms-presets-v122.js"></script>\n<script src="scripts/index.bundle.js"></script>#' "$WEB/index.html" || return 1
