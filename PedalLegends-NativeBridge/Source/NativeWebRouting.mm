@@ -19,6 +19,71 @@ namespace
     }
 
     char handlerAssociationKey;
+    char geometryAssociationKey;
+
+    // The original 1440x960 React editor already scales itself perfectly
+    // whenever WKWebView's REAL viewport is the size requested by JUCE.
+    // The hosted Audio Unit can retain an old NSView/WKWebView size when
+    // inserted into the new native Split header. Resize only the chain
+    // INSIDE the original AU editor's own native peer; never touch the host
+    // window, CSS zoom, pageZoom, or the actual canvas.
+    void ensureEmbeddedWebViewSize (NSView* editorRoot, WKWebView* web,
+                                    int width, int height)
+    {
+        if (editorRoot == nil || web == nil || width < 320 || height < 240)
+            return;
+
+        const NSSize wanted = NSMakeSize ((CGFloat) width, (CGFloat) height);
+        const NSSize rootBounds = [editorRoot bounds].size;
+        // JUCE must have laid out the embedded editor before doing anything.
+        // This guard prevents altering an AU whose native peer has not yet
+        // adopted its JUCE component bounds.
+        if (std::abs (rootBounds.width - wanted.width) > 3.0
+         || std::abs (rootBounds.height - wanted.height) > 3.0)
+            return;
+
+        bool changed = false;
+        NSView* current = (NSView*) web;
+        int depth = 0;
+        // Never resize editorRoot or its superviews. Walk solely along the
+        // original Audio Unit's native child hierarchy.
+        while (current != editorRoot && current != nil && depth++ < 12)
+        {
+            const NSRect frame = [current frame];
+            if (std::abs (frame.size.width - wanted.width) > 2.0
+             || std::abs (frame.size.height - wanted.height) > 2.0
+             || std::abs (frame.origin.x) > 2.0
+             || std::abs (frame.origin.y) > 2.0)
+            {
+                [current setFrame:NSMakeRect (0.0, 0.0,
+                                             wanted.width, wanted.height)];
+                [current setNeedsLayout:YES];
+                changed = true;
+            }
+            [current setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
+            current = [current superview];
+        }
+        if (current != editorRoot)
+            return; // Unexpected hierarchy; do not manipulate unrelated views.
+
+        const auto token = juce::String (width) + "x" + juce::String (height);
+        NSString* previous = (NSString*) objc_getAssociatedObject (
+            web, &geometryAssociationKey);
+        const bool firstForSize = previous == nil
+            || ! [previous isEqualToString:
+                    [NSString stringWithUTF8String:token.toRawUTF8()]];
+        if (changed || firstForSize)
+        {
+            NSString* key = [NSString stringWithUTF8String:token.toRawUTF8()];
+            objc_setAssociatedObject (web, &geometryAssociationKey, key,
+                                      OBJC_ASSOCIATION_COPY_NONATOMIC);
+            // Request the calculation already built into the original
+            // React CR component. Do not replace its own CSS scaling.
+            [web evaluateJavaScript:
+                @"window.dispatchEvent(new Event('resize'));"
+                completionHandler:nil];
+        }
+    }
 
 }
 
@@ -99,6 +164,10 @@ void lmsPushWebRouting (juce::AudioProcessorEditor& originalEditor,
 
     WKWebView* web = findWebView ((NSView*) native);
     if (web == nil) return;
+
+    ensureEmbeddedWebViewSize ((NSView*) native, web,
+                               originalEditor.getWidth(),
+                               originalEditor.getHeight());
 
 
     // Install once per original WebView. The handler holds only a weak JUCE
