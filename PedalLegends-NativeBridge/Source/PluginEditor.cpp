@@ -188,12 +188,7 @@ void PedalLegendsBridgeEditor::timerCallback()
                 originalEditor->addComponentListener (this);
                 statusLabel.setVisible (false);
                 routingDiagram.toFront (false);
-                const auto pref = originalEditor->getBounds();
-                originalWidth = juce::jmax (320, pref.getWidth());
-                originalHeight = juce::jmax (240, pref.getHeight());
-                // Fit the entire original pedalboard inside a smaller host window.
-                // The original WebView retains its logical coordinates for clicks.
-                resized();
+                // WKWebView is a native child view: JUCE affine transforms do not\n                // reliably scale it. Give it real, clipped board bounds; the\n                // WebView's own CSS layout scales the entire original UI.\n                resized();
             }
         }
     }
@@ -237,14 +232,9 @@ void PedalLegendsBridgeEditor::componentMovedOrResized (juce::Component& child,
         return;
     if (child.getWidth() < 320 || child.getHeight() < 240)
         return;
-    // Original AU may request a different logical size. Keep the host window
-    // compact and recompute its display transform instead of growing the host.
-    if (child.getWidth() != originalWidth || child.getHeight() != originalHeight)
-    {
-        originalWidth = child.getWidth();
-        originalHeight = child.getHeight();
-        triggerAsyncUpdate();
-    }
+    // The board viewport owns the native window dimensions; do not allow
+    // a self-resizing AU editor to expand and conceal the header.
+    triggerAsyncUpdate();
 }
 
 void PedalLegendsBridgeEditor::handleAsyncUpdate()
@@ -282,15 +272,9 @@ void PedalLegendsBridgeEditor::resized()
     statusLabel.setBounds (board.reduced (25));
     if (originalEditor != nullptr)
     {
-        const int logicalWidth = juce::jmax (320, originalWidth);
-        const int logicalHeight = juce::jmax (240, originalHeight);
-        const float scale = juce::jmin ((float) board.getWidth() / (float) logicalWidth,
-                                       (float) board.getHeight() / (float) logicalHeight);
-        const float x = (float) board.getX() +
-                        ((float) board.getWidth() - scale * (float) logicalWidth) * 0.5f;
-        const float y = (float) board.getY();
-        originalEditor->setBounds (0, 0, logicalWidth, logicalHeight);
-        originalEditor->setTransform (juce::AffineTransform::scale (scale).translated (x, y));
+        originalEditor->setTransform (juce::AffineTransform());
+        originalEditor->setBounds (board);
+        originalEditor->toBack();
     }
     routingDiagram.setBounds (20, 119, juce::jmax (0, getWidth() - 40), 85);
     routingDiagram.toFront (false);
