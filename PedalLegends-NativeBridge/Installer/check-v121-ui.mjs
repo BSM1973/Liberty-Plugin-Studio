@@ -62,10 +62,9 @@ assert.equal(svg.style.visibility,"","Direct+effects keeps the serial effect-cha
 console.log("V12.1.2 SVG: decorative cables hidden in Split, A/B stage markers updated; serial wiring restored.");
 // The accessible native header must show a real sequential A/B graph.
 const nativeHeader = fs.readFileSync(new URL("../Source/RoutingDiagram.h", import.meta.url),"utf8");
-for (const term of ["PEDAL","setRouting","selectedLane","const int modeToShow"]) {
+for (const term of ["setRouting", "selectedLane", "drawLane", "SPLIT INDISPONIBLE"]) {
   // Only the C++ compilation verifies type correctness; this verifies that
   // the source for the explicit native signal-flow diagram is packaged.
-  if (term === "const int modeToShow") continue;
   assert.ok(nativeHeader.includes(term),"Missing native routing diagram term: "+term);
 }
 
