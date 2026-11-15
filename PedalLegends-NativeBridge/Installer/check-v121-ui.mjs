@@ -46,6 +46,27 @@ apply({mode:2,ready:true,lanes});
 assert.equal(original.style.display,"none");
 assert.ok(svg.classList.contains("lms-is-split"));
 assert.ok(svg.querySelector(".lms-native-cables"),"Split cables must appear");
+// A clean cable display has exactly two uninterrupted rails, short vertical
+// connectors and two junctions; never S-curves or zig-zag crossings.
+const cableLayer = svg.querySelector(".lms-native-cables");
+const branches = cableLayer.children.filter(n => n.type === "g");
+assert.equal(branches.length, 2, "Exactly two visible branches A/B");
+for (const branch of branches) {
+  const paths = branch.children.filter(n => n.type === "path");
+  const rails = paths.filter(n => n.attrs.class.includes("lms-rail") &&
+                                  n.attrs.class.includes("lms-cable-inner"));
+  assert.equal(rails.length, 1, "One continuous rail per branch");
+  assert.ok(!/[CQcq]/.test(rails[0].attrs.d), "Rails must not zigzag");
+  const pins = paths.filter(n => n.attrs.class.includes("lms-stage-connector") &&
+                                n.attrs.class.includes("lms-cable-inner"));
+  assert.equal(pins.length, 4, "Four local stage connectors in default 4+4 split");
+  for (const pin of pins) {
+    assert.ok(/M [0-9]+ [0-9]+ V [0-9]+/.test(pin.attrs.d), "Connectors are strictly vertical");
+    const nums = pin.attrs.d.match(/\d+/g).map(Number);
+    assert.ok(Math.abs(nums[1] - nums[2]) <= 7, "Connector never crosses another branch");
+  }
+}
+
 assert.equal(slots[0].dataset.lmsRoute,"A");
 assert.equal(slots[7].dataset.lmsRoute,"B");
 assert.equal(slots[7].heading.children[0].textContent,"B");
