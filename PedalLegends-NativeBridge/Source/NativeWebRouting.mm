@@ -1,7 +1,8 @@
-#include "NativeWebRouting.h"
-
+// Import Apple frameworks before JUCE's optional global using namespace,
+// otherwise Carbon's Point/Component typedefs become ambiguous.
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebKit.h>
+#include "NativeWebRouting.h"
 
 namespace
 {
