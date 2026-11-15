@@ -64,6 +64,7 @@ private:
     juce::PluginDescription originalDescription;
     bool originalDescriptionValid = false;
     bool splitCreationInProgress = false;
+    bool splitUnavailable = false;
     std::atomic<bool> twoBranchReady { false };
     std::array<int, 8> stageEnabledParameterIndices {};
     juce::AudioBuffer<float> branchBFloat;
