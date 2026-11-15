@@ -101,6 +101,17 @@ void PedalLegendsBridgeEditor::timerCallback()
         button.setVisible (controlsVisible);
     }
     splitDiagram.setVisible (controlsVisible);
+    if (mode == 2)
+    {
+        const bool ready = processor.isTwoBranchReady();
+        const bool failed = processor.isSplitUnavailable();
+        splitDiagram.setText (failed ? "SPLIT INDISPONIBLE" :
+                              ready ? "SPLIT  →  A / B  →  SORTIE" :
+                                      "SPLIT : INITIALISATION...",
+                              juce::dontSendNotification);
+        splitDiagram.setColour (juce::Label::textColourId,
+                                failed ? juce::Colours::darkred : juce::Colour (0xff284632));
+    }
     if (originalEditor == nullptr)
     {
         if (auto* inner = processor.getEngineForEditor())
