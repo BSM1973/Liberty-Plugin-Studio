@@ -8,7 +8,8 @@
 // This processor HOSTS the user's validated original AU instead of reimplementing it.
 // Original AU identity: aufx/yZPb/Plmk ; bridge identity: aufx/PdLg/LbMS.
 class PedalLegendsBridgeProcessor final : public juce::AudioProcessor,
-                                         private juce::AsyncUpdater
+                                         private juce::AsyncUpdater,
+                                         private juce::Timer
 {
 public:
     PedalLegendsBridgeProcessor();
@@ -39,9 +40,15 @@ public:
     juce::String getStatus() const { return status; }
     juce::AudioParameterChoice& getRoutingMode() const noexcept { return *routingMode; }
     juce::AudioParameterFloat& getParallelBlend() const noexcept { return *parallelBlend; }
+    juce::AudioParameterChoice& getStageLane (int index) const noexcept { return *stageLanes[(size_t) juce::jlimit (0, 7, index)]; }
+    bool isTwoBranchReady() const noexcept { return twoBranchReady.load(); }
+    void ensureSplitEngines();
 
 private:
     void handleAsyncUpdate() override;
+    void timerCallback() override;
+    void finishSplitCreation (int lane, std::unique_ptr<juce::AudioPluginInstance>, const juce::String&);
+    void syncSplitParameters();
     void startOriginalAU();
     void finishCreation (std::unique_ptr<juce::AudioPluginInstance>, const juce::String& error);
     void refreshStatus (const juce::String& value);
@@ -52,6 +59,15 @@ private:
     juce::SpinLock engineLock;
     juce::AudioParameterChoice* routingMode = nullptr;
     juce::AudioParameterFloat* parallelBlend = nullptr;
+    std::array<juce::AudioParameterChoice*, 8> stageLanes {};
+    std::unique_ptr<juce::AudioPluginInstance> splitEngineA, splitEngineB;
+    juce::PluginDescription originalDescription;
+    bool originalDescriptionValid = false;
+    bool splitCreationInProgress = false;
+    std::atomic<bool> twoBranchReady { false };
+    std::array<int, 8> stageEnabledParameterIndices {};
+    juce::AudioBuffer<float> branchBFloat;
+    juce::AudioBuffer<double> branchBDouble;
     juce::AudioBuffer<float> dryFloat;
     juce::AudioBuffer<double> dryDouble;
     juce::AudioPluginFormatManager formatManager;
