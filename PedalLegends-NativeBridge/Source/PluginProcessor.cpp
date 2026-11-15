@@ -298,7 +298,7 @@ void PedalLegendsBridgeProcessor::ensureSplitEngines()
     // Windows does not have the original PluginMaker AU DSP.
     return;
 #else
-    if (splitCreationInProgress || ! originalDescriptionValid || engine == nullptr
+    if (splitCreationInProgress || splitUnavailable || ! originalDescriptionValid || engine == nullptr
         || twoBranchReady.load())
         return;
 
@@ -320,6 +320,7 @@ void PedalLegendsBridgeProcessor::finishSplitCreation (
     if (instance == nullptr)
     {
         splitCreationInProgress = false;
+        splitUnavailable = true;
         twoBranchReady.store (false);
         refreshStatus (juce::String::fromUTF8 (u8"SPLIT indisponible : création de branche impossible. ") + error);
         return;
@@ -367,6 +368,7 @@ void PedalLegendsBridgeProcessor::finishSplitCreation (
             || engine->getParameters().size() != splitEngineB->getParameters().size())
         {
             splitCreationInProgress = false;
+            splitUnavailable = true;
             refreshStatus (juce::String::fromUTF8 (u8"SPLIT désactivé : paramètres AU incompatibles."));
             return;
         }
@@ -386,6 +388,7 @@ void PedalLegendsBridgeProcessor::finishSplitCreation (
         if (idx < 0)
         {
             splitCreationInProgress = false;
+            splitUnavailable = true;
             refreshStatus (juce::String::fromUTF8 (
                 u8"SPLIT désactivé : un paramètre d'activation de pédale n'est pas exposé par l'AU."));
             return;
