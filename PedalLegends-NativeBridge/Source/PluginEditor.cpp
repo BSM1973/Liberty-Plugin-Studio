@@ -90,12 +90,8 @@ PedalLegendsBridgeEditor::PedalLegendsBridgeEditor (PedalLegendsBridgeProcessor&
     // the original AU's opaque WebView.
     addAndMakeVisible (routingDiagram);
 
-    // Native WKWebView cannot safely be resized with an affine transform.
-    // Keep the source-size editor and scroll its JUCE viewport instead.
-    boardViewport.setScrollBarsShown (true, true);
-    boardViewport.setScrollBarThickness (12);
-    addAndMakeVisible (boardViewport);
-    boardViewport.toBack();
+    // The original pedalboard is 1440x960. The premium header is added
+    // above it, not drawn over its controls.
     setResizable (false, false);
     setSize (1380, 950);
     syncRoutingControls();
@@ -108,7 +104,6 @@ PedalLegendsBridgeEditor::~PedalLegendsBridgeEditor()
     cancelPendingUpdate();
     if (originalEditor != nullptr)
         originalEditor->removeComponentListener (this);
-    boardViewport.setViewedComponent (nullptr, false);
     originalEditor.reset();
     for (auto& button : modeButtons) button.setLookAndFeel (nullptr);
     for (auto& button : stageLaneButtons) button.setLookAndFeel (nullptr);
@@ -189,13 +184,12 @@ void PedalLegendsBridgeEditor::timerCallback()
             originalEditor.reset (inner->createEditorIfNeeded());
             if (originalEditor != nullptr)
             {
-                const auto preferred = originalEditor->getBounds();
-                originalEditor->setSize (juce::jmax (1440, preferred.getWidth()),
-                                         juce::jmax (960, preferred.getHeight()));
-                boardViewport.setViewedComponent (originalEditor.get(), false);
-                boardViewport.setViewPosition (0, 0);
+                addAndMakeVisible (originalEditor.get());
+                originalEditor->addComponentListener (this);
                 statusLabel.setVisible (false);
                 routingDiagram.toFront (false);
+                // Native WKWebView pageZoom fits the original page into this
+                // real host viewport; do not enlarge the plugin to AU preferred size.
                 resized();
             }
         }
@@ -233,15 +227,15 @@ void PedalLegendsBridgeEditor::paint (juce::Graphics& g)
     g.drawHorizontalLine (110, 25.0f, (float) getWidth() - 25.0f);
 }
 
-void PedalLegendsBridgeEditor::componentMovedOrResized (juce::Component&,
-                                                       bool, bool)
+void PedalLegendsBridgeEditor::componentMovedOrResized (juce::Component&, bool, bool)
 {
-    // Deliberately do not resize the host from the embedded AU editor.
+    // Ignore preferred-size callbacks from the embedded Audio Unit.
+    // The real WKWebView is sized by resized(), with WebKit page zoom.
 }
 
 void PedalLegendsBridgeEditor::handleAsyncUpdate()
 {
-    // Host dimensions stay fixed; the viewport provides access to the bottom.
+    // Host resize is intentionally not driven by the original AU editor.
 }
 
 void PedalLegendsBridgeEditor::resized()
@@ -271,8 +265,8 @@ void PedalLegendsBridgeEditor::resized()
                              roomy ? getWidth() - 1050 : getWidth() - 640, 25);
 
     statusLabel.setBounds (board.reduced (25));
-    boardViewport.setBounds (board);
-    boardViewport.toBack();
+    if (originalEditor != nullptr)
+        originalEditor->setBounds (board);
     routingDiagram.setBounds (20, 119, juce::jmax (0, getWidth() - 40), 85);
     routingDiagram.toFront (false);
 }
