@@ -1,44 +1,61 @@
 #include "PluginEditor.h"
 
+namespace
+{
+    const juce::Colour ink (0xff23362a);
+    const juce::Colour olive (0xff294735);
+    const juce::Colour copper (0xffb78e55);
+    const juce::Colour ivory (0xfff3ead5);
+    const juce::Colour border (0xffa78e67);
+    constexpr int routingHeaderHeight = 104;
+}
+
 PedalLegendsBridgeEditor::PedalLegendsBridgeEditor (PedalLegendsBridgeProcessor& p)
     : AudioProcessorEditor (&p), processor (p)
 {
     statusLabel.setJustificationType (juce::Justification::centred);
-    statusLabel.setColour (juce::Label::textColourId, juce::Colours::black);
+    statusLabel.setColour (juce::Label::textColourId, ink);
     statusLabel.setFont (juce::Font (juce::FontOptions ("Arial", 15.0f, juce::Font::plain)));
     addAndMakeVisible (statusLabel);
-    routingTitle.setText ("ROUTAGE", juce::dontSendNotification);
-    routingTitle.setColour (juce::Label::textColourId, juce::Colour (0xff23382b));
-    routingTitle.setFont (juce::Font (juce::FontOptions (12.0f, juce::Font::bold)));
-    addAndMakeVisible (routingTitle);
 
-    routingSelector.addItem (juce::String::fromUTF8 (u8"SÉRIE"), 1);
-    routingSelector.addItem (juce::String::fromUTF8 (u8"PARALLÈLE : DIRECT + EFFETS"), 2);
-    routingSelector.addItem (juce::String::fromUTF8 (u8"SPLIT : 2 CHEMINS A / B"), 3);
-    routingSelector.setColour (juce::ComboBox::backgroundColourId, juce::Colour (0xfff4ead4));
-    routingSelector.setColour (juce::ComboBox::textColourId, juce::Colour (0xff1c3225));
-    routingSelector.setColour (juce::ComboBox::outlineColourId, juce::Colour (0xff9c865f));
-    routingSelector.setSelectedId (1, juce::dontSendNotification);
-    routingSelector.onChange = [this]
-    {
-        const int index = juce::jlimit (0, 2, routingSelector.getSelectedId() - 1);
-        processor.getRoutingMode().setValueNotifyingHost ((float) index / 2.0f);
-        if (index == 2) processor.ensureSplitEngines();
+    const juce::StringArray modes {
+        juce::String::fromUTF8 (u8"SÉRIE"),
+        juce::String::fromUTF8 (u8"PARALLÈLE"),
+        "SPLIT A/B"
     };
-    addAndMakeVisible (routingSelector);
+    for (int i = 0; i < 3; ++i)
+    {
+        auto& button = modeButtons[(size_t) i];
+        button.setButtonText (modes[i]);
+        button.setTooltip (i == 0 ? "Huit effets dans l'ordre original" :
+                           i == 1 ? "Signal direct et effets, en parallèle" :
+                                    "Deux chaînes de pédales distinctes, A et B, réunies à la sortie");
+        button.onClick = [this, i]
+        {
+            // JUCE choice normalized values: 0, 0.5 and 1.
+            processor.getRoutingMode().setValueNotifyingHost ((float) i / 2.0f);
+            if (i == 2) processor.ensureSplitEngines();
+            syncRoutingControls();
+        };
+        button.setColour (juce::TextButton::textColourOffId, ivory);
+        addAndMakeVisible (button);
+    }
 
-    blendTitle.setText (juce::String::fromUTF8 (u8"DOSAGE EFFET"), juce::dontSendNotification);
-    blendTitle.setColour (juce::Label::textColourId, juce::Colour (0xff23382b));
-    blendTitle.setFont (juce::Font (juce::FontOptions (12.0f, juce::Font::bold)));
+    blendTitle.setText ("DOSAGE / BALANCE", juce::dontSendNotification);
+    blendTitle.setFont (juce::Font (juce::FontOptions ("Arial", 10.0f, juce::Font::bold)));
+    blendTitle.setColour (juce::Label::textColourId, ink);
+    blendTitle.setJustificationType (juce::Justification::centredLeft);
     addAndMakeVisible (blendTitle);
 
     blendSlider.setSliderStyle (juce::Slider::LinearHorizontal);
     blendSlider.setRange (0.0, 100.0, 1.0);
-    blendSlider.setTextBoxStyle (juce::Slider::TextBoxRight, false, 54, 24);
+    blendSlider.setTextBoxStyle (juce::Slider::TextBoxRight, false, 52, 25);
     blendSlider.setTextValueSuffix (" %");
-    blendSlider.setColour (juce::Slider::thumbColourId, juce::Colour (0xffb18549));
-    blendSlider.setColour (juce::Slider::trackColourId, juce::Colour (0xff33583d));
-    blendSlider.setValue (50.0, juce::dontSendNotification);
+    blendSlider.setColour (juce::Slider::backgroundColourId, juce::Colour (0xffc6b89d));
+    blendSlider.setColour (juce::Slider::trackColourId, olive);
+    blendSlider.setColour (juce::Slider::thumbColourId, copper);
+    blendSlider.setColour (juce::Slider::textBoxTextColourId, ink);
+    blendSlider.setColour (juce::Slider::textBoxOutlineColourId, border);
     blendSlider.onValueChange = [this]
     {
         processor.getParallelBlend().setValueNotifyingHost ((float) blendSlider.getValue() / 100.0f);
@@ -48,26 +65,31 @@ PedalLegendsBridgeEditor::PedalLegendsBridgeEditor (PedalLegendsBridgeProcessor&
     for (int i = 0; i < 8; ++i)
     {
         auto& button = stageLaneButtons[(size_t) i];
-        button.setTooltip ("Étape " + juce::String (i + 1) + " : affecter la pédale à A ou B");
-        button.setColour (juce::TextButton::buttonColourId, juce::Colour (0xff33543a));
-        button.setColour (juce::TextButton::textColourOffId, juce::Colour (0xfff8ecd1));
+        button.setTooltip ("Pédale " + juce::String (i + 1) + ": choisir son chemin A ou B");
+        button.setColour (juce::TextButton::textColourOffId, ivory);
         button.onClick = [this, i]
         {
-            auto& param = processor.getStageLane (i);
-            param.setValueNotifyingHost (param.getIndex() == 0 ? 1.0f : 0.0f);
+            auto& lane = processor.getStageLane (i);
+            lane.setValueNotifyingHost (lane.getIndex() == 0 ? 1.0f : 0.0f);
+            syncRoutingControls();
         };
         addAndMakeVisible (button);
-        button.setVisible (false);
     }
-    splitDiagram.setText ("SPLIT  →  A / B  →  SORTIE", juce::dontSendNotification);
-    splitDiagram.setFont (juce::Font (juce::FontOptions (11.0f, juce::Font::bold)));
-    splitDiagram.setColour (juce::Label::textColourId, juce::Colour (0xff284632));
-    addAndMakeVisible (splitDiagram);
-    splitDiagram.setVisible (false);
 
+    routingStatus.setColour (juce::Label::textColourId, ink);
+    routingStatus.setFont (juce::Font (juce::FontOptions ("Arial", 10.0f, juce::Font::bold)));
+    routingStatus.setJustificationType (juce::Justification::centredLeft);
+    addAndMakeVisible (routingStatus);
+
+    splitGraphic.setVisible (false);
+    addAndMakeVisible (splitGraphic);
+
+    // The original pedalboard is 1440x960. The premium header is added
+    // above it, not drawn over its controls.
     setResizable (false, false);
-    setSize (1520, 1000);
-    startTimerHz (5);
+    setSize (1520, 1080);
+    syncRoutingControls();
+    startTimerHz (8);
 }
 
 PedalLegendsBridgeEditor::~PedalLegendsBridgeEditor()
@@ -79,58 +101,82 @@ PedalLegendsBridgeEditor::~PedalLegendsBridgeEditor()
     originalEditor.reset();
 }
 
-void PedalLegendsBridgeEditor::timerCallback()
+void PedalLegendsBridgeEditor::syncRoutingControls()
 {
-    statusLabel.setText (processor.getStatus(), juce::dontSendNotification);
     const int mode = processor.getRoutingMode().getIndex();
-    routingSelector.setSelectedId (mode + 1, juce::dontSendNotification);
+    for (int i = 0; i < 3; ++i)
+    {
+        auto& b = modeButtons[(size_t) i];
+        const bool selected = mode == i;
+        b.setColour (juce::TextButton::buttonColourId,
+                     selected ? olive : juce::Colour (0xff857d64));
+        b.setColour (juce::TextButton::buttonOnColourId,
+                     selected ? olive : juce::Colour (0xff857d64));
+        b.setColour (juce::TextButton::textColourOffId, selected ? ivory : juce::Colour (0xfffcf2df));
+    }
+
+    blendSlider.setEnabled (mode != 0);
+    blendTitle.setEnabled (mode != 0);
+    blendTitle.setText (mode == 2 ? "BALANCE A / B" : "DIRECT / EFFETS",
+                        juce::dontSendNotification);
     blendSlider.setValue ((double) processor.getParallelBlend().get() * 100.0,
                           juce::dontSendNotification);
-    blendSlider.setEnabled (mode == 1 || mode == 2);
-    blendTitle.setEnabled (mode == 1 || mode == 2);
-    blendTitle.setText (mode == 2 ? "BALANCE A / B" : "DOSAGE EFFET",
-                        juce::dontSendNotification);
-    const bool controlsVisible = mode == 2 && getWidth() >= 1120;
+
+    std::array<int, 8> lanes {};
     for (int i = 0; i < 8; ++i)
     {
         auto& button = stageLaneButtons[(size_t) i];
-        const bool laneB = processor.getStageLane (i).getIndex() != 0;
-        button.setButtonText (juce::String (i + 1) + ":" + (laneB ? "B" : "A"));
-        button.setColour (juce::TextButton::buttonColourId,
-                          laneB ? juce::Colour (0xff98764c) : juce::Colour (0xff33543a));
-        button.setVisible (controlsVisible);
+        const int lane = processor.getStageLane (i).getIndex();
+        lanes[(size_t) i] = lane;
+        button.setButtonText (juce::String (i + 1) + "  " + (lane ? "B" : "A"));
+        button.setColour (juce::TextButton::buttonColourId, lane ? copper : olive);
+        button.setVisible (mode == 2);
     }
-    splitDiagram.setVisible (controlsVisible);
+
     if (mode == 2)
     {
         const bool ready = processor.isTwoBranchReady();
-        const bool failed = processor.isSplitUnavailable();
-        splitDiagram.setText (failed ? "SPLIT INDISPONIBLE" :
-                              ready ? "SPLIT  →  A / B  →  SORTIE" :
-                                      "SPLIT : INITIALISATION...",
-                              juce::dontSendNotification);
-        splitDiagram.setColour (juce::Label::textColourId,
-                                failed ? juce::Colours::darkred : juce::Colour (0xff284632));
+        const bool unavailable = processor.isSplitUnavailable();
+        routingStatus.setText (unavailable ? "SPLIT INDISPONIBLE - MODE SERIE DE SECOURS" :
+                               ready ? "DEUX CHEMINS ACTIFS | FUSION VERS SORTIE" :
+                                       "INITIALISATION DES DEUX CHEMINS...",
+                               juce::dontSendNotification);
+        routingStatus.setColour (juce::Label::textColourId,
+                                 unavailable ? juce::Colour (0xffa23435) : ink);
+        splitGraphic.setRouting (true, ready, lanes);
     }
-    if (originalEditor == nullptr)
+    else
     {
-        if (auto* inner = processor.getEngineForEditor())
+        routingStatus.setText (mode == 0 ? "CHAINE SERIE D'ORIGINE" :
+                                          "SIGNAL DIRECT + CHAINE D'EFFETS",
+                               juce::dontSendNotification);
+        routingStatus.setColour (juce::Label::textColourId, ink);
+        splitGraphic.setRouting (false, false, lanes);
+    }
+}
+
+void PedalLegendsBridgeEditor::timerCallback()
+{
+    statusLabel.setText (processor.getStatus(), juce::dontSendNotification);
+    syncRoutingControls();
+    if (originalEditor != nullptr)
+        return;
+
+    if (auto* inner = processor.getEngineForEditor())
+    {
+        if (inner->hasEditor())
         {
-            if (inner->hasEditor())
+            originalEditor.reset (inner->createEditorIfNeeded());
+            if (originalEditor != nullptr)
             {
-                originalEditor.reset (inner->createEditorIfNeeded());
-                if (originalEditor != nullptr)
-                {
-                    addAndMakeVisible (originalEditor.get());
-                    statusLabel.setVisible (false);
-                    originalEditor->addComponentListener (this);
-                    const auto pref = originalEditor->getBounds();
-                    // The original AU has its own corner drag-resizer. Let its editor
-                    // drive this wrapper's size instead of leaving empty blue space.
-                    setSize (juce::jlimit (800, 1800, juce::jmax (1520, pref.getWidth())),
-                             juce::jlimit (600, 1160, juce::jmax (1000, pref.getHeight() + 44)));
-                    resized();
-                }
+                addAndMakeVisible (originalEditor.get());
+                originalEditor->addComponentListener (this);
+                statusLabel.setVisible (false);
+                splitGraphic.toFront (false);
+                const auto pref = originalEditor->getBounds();
+                setSize (juce::jlimit (1000, 1900, juce::jmax (1520, pref.getWidth())),
+                         juce::jlimit (760, 1320, juce::jmax (1080, pref.getHeight() + routingHeaderHeight)));
+                resized();
             }
         }
     }
@@ -138,29 +184,44 @@ void PedalLegendsBridgeEditor::timerCallback()
 
 void PedalLegendsBridgeEditor::paint (juce::Graphics& g)
 {
-    // Neutral cream toolbar and original pedalboard. No blue exterior.
-    g.fillAll (juce::Colour (0xffede4d0));
-    g.setColour (juce::Colour (0xffe2d4b9));
-    g.fillRect (0, 0, getWidth(), 43);
-    g.setColour (juce::Colour (0xffbda681));
-    g.drawHorizontalLine (42, 0.0f, (float) getWidth());
+    g.fillAll (juce::Colour (0xffede5d3));
+    juce::Rectangle<float> bar (10.0f, 7.0f, (float) getWidth() - 20.0f,
+                                (float) routingHeaderHeight - 14.0f);
+
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xfff9f0db), bar.getX(), bar.getY(),
+                                             juce::Colour (0xffd4c4a3), bar.getX(), bar.getBottom(),
+                                             false));
+    g.fillRoundedRectangle (bar, 14.0f);
+    g.setColour (border);
+    g.drawRoundedRectangle (bar, 14.0f, 1.3f);
+
+    g.setColour (olive);
+    g.fillRoundedRectangle (20.0f, 17.0f, 180.0f, 68.0f, 10.0f);
+    g.setColour (ivory);
+    g.setFont (juce::Font (juce::FontOptions ("Arial", 11.0f, juce::Font::bold)));
+    g.drawFittedText ("LIBERTY", 31, 22, 155, 18, juce::Justification::centredLeft, 1);
+    g.setFont (juce::Font (juce::FontOptions ("Arial", 16.0f, juce::Font::bold)));
+    g.drawFittedText ("ROUTAGE AUDIO", 31, 42, 163, 24, juce::Justification::centredLeft, 1);
+
+    g.setColour (juce::Colour (0xff877356));
+    g.setFont (juce::Font (juce::FontOptions ("Arial", 9.5f, juce::Font::bold)));
+    g.drawFittedText ("MODE DE SIGNAL", 213, 12, 322, 19,
+                      juce::Justification::centredLeft, 1);
+    g.drawFittedText ("AFFECTATION DES 8 PEDALES (A / B)", 529, 55, 478, 17,
+                      juce::Justification::centredLeft, 1);
+    g.setColour (juce::Colour (0xffb59360));
+    g.drawHorizontalLine (54, 210.0f, (float) getWidth() - 24.0f);
 }
 
-void PedalLegendsBridgeEditor::componentMovedOrResized (juce::Component& component,
-                                                       bool /*wasMoved*/, bool wasResized)
+void PedalLegendsBridgeEditor::componentMovedOrResized (juce::Component& child,
+                                                       bool, bool wasResized)
 {
-    if (! wasResized || &component != originalEditor.get() || updatingChildLayout)
+    if (! wasResized || &child != originalEditor.get() || updatingChildLayout)
         return;
-
-    // Resize requests originate from the original pedalboard's bottom-right handle.
-    // Coalesce rapid drag events; never resize the AU from inside this callback.
-    const int childW = originalEditor->getWidth();
-    const int childH = originalEditor->getHeight();
-    if (childW < 320 || childH < 240)
+    if (child.getWidth() < 320 || child.getHeight() < 240)
         return;
-
-    pendingWidth = childW;
-    pendingHeight = childH + 44;
+    pendingWidth = child.getWidth();
+    pendingHeight = child.getHeight() + routingHeaderHeight;
     triggerAsyncUpdate();
 }
 
@@ -168,9 +229,8 @@ void PedalLegendsBridgeEditor::handleAsyncUpdate()
 {
     if (originalEditor == nullptr || pendingWidth <= 0 || pendingHeight <= 0)
         return;
-
-    const int targetW = juce::jlimit (400, 2400, pendingWidth);
-    const int targetH = juce::jlimit (320, 1800, pendingHeight);
+    const int targetW = juce::jlimit (700, 2400, pendingWidth);
+    const int targetH = juce::jlimit (480, 1800, pendingHeight);
     if (targetW != getWidth() || targetH != getHeight())
         setSize (targetW, targetH);
 }
@@ -178,26 +238,32 @@ void PedalLegendsBridgeEditor::handleAsyncUpdate()
 void PedalLegendsBridgeEditor::resized()
 {
     juce::ScopedValueSetter<bool> guard (updatingChildLayout, true);
-    // Only a thin cream router bar; original pedalboard fills all space below.
-    auto area = getLocalBounds();
-    auto toolbar = area.removeFromTop (44);
-    toolbar.removeFromLeft (14);
-    routingTitle.setBounds (toolbar.removeFromLeft (78));
-    routingSelector.setBounds (toolbar.removeFromLeft (255).reduced (2, 7));
-    toolbar.removeFromLeft (16);
-    blendTitle.setBounds (toolbar.removeFromLeft (122));
-    blendSlider.setBounds (toolbar.removeFromLeft (215).reduced (0, 4));
-    toolbar.removeFromLeft (10);
-    const bool room = getWidth() >= 1120;
-    for (int i = 0; i < 8; ++i)
+    const auto full = getLocalBounds();
+    auto board = full;
+    board.removeFromTop (routingHeaderHeight);
+
+    int buttonX = 213;
+    const int modeWidths[] = { 95, 142, 133 };
+    for (int i = 0; i < 3; ++i)
     {
-        auto& button = stageLaneButtons[(size_t) i];
-        if (room) button.setBounds (toolbar.removeFromLeft (42).reduced (2, 7));
-        else      button.setBounds ({});
+        modeButtons[(size_t) i].setBounds (buttonX, 32, modeWidths[i], 31);
+        buttonX += modeWidths[i] + 7;
     }
-    if (room) splitDiagram.setBounds (toolbar.removeFromLeft (210).reduced (0, 9));
-    else      splitDiagram.setBounds ({});
-    statusLabel.setBounds (area.reduced (18));
+
+    blendTitle.setBounds (625, 13, 207, 18);
+    blendSlider.setBounds (625, 32, 255, 31);
+
+    const bool roomy = getWidth() >= 1045;
+    const int startX = roomy ? 529 : 0;
+    for (int i = 0; i < 8; ++i)
+        stageLaneButtons[(size_t) i].setBounds (
+            roomy ? juce::Rectangle<int> (startX + 58 * i, 73, 54, 26) : juce::Rectangle<int>());
+    routingStatus.setBounds (roomy ? 1020 : 610, 73,
+                             roomy ? getWidth() - 1050 : getWidth() - 640, 25);
+
+    statusLabel.setBounds (board.reduced (25));
     if (originalEditor != nullptr)
-        originalEditor->setBounds (area);
+        originalEditor->setBounds (board);
+    splitGraphic.setBounds (board);
+    splitGraphic.toFront (false);
 }
