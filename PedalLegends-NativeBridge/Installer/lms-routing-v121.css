@@ -36,3 +36,19 @@
 #main .pedal-grid .slot-well[data-lms-route="B"] .lms-split-stage-marker {
   background: #90562f !important; color: #fff0d8 !important;
 }
+
+
+/* Do not remove or rewrite React-owned legend nodes. */
+#main .touring-board .chain-legend.lms-chain-split {
+  font-size: 0 !important; color: transparent !important;
+}
+#main .touring-board .chain-legend.lms-chain-split > * {
+  display: none !important;
+}
+#main .touring-board .chain-legend.lms-chain-split::before {
+  content: "ENTRÉE  /  CHEMIN A + CHEMIN B  /  SORTIE";
+  color: #ebc795 !important;
+  font: 800 11px Arial, sans-serif !important;
+  letter-spacing: .6px !important;
+  display: inline-block !important;
+}
