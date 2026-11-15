@@ -52,6 +52,7 @@ LOG="/Library/Logs/Pedal-Legends-Installation-Systeme.log"
   test -f "$UI_ASSETS/lms-presets-v122.js"
   test -f "$UI_ASSETS/lms-browser-v122.js"
   test -f "$UI_ASSETS/lms-browser-v122.css"
+  test -f "$UI_ASSETS/lms-canvas-fit.js"
   ORIGINAL_SYSTEM="/Library/Audio/Plug-Ins/Components/LIBERTY_PEDAL_LEGENDS.component"
   ORIGINAL_USER=""
   if [[ -n "${USER_HOME:-}" ]]; then
@@ -94,6 +95,7 @@ LOG="/Library/Logs/Pedal-Legends-Installation-Systeme.log"
       /bin/cp "$UI_ASSETS/lms-presets-v122.js" "$WEB/scripts/lms-presets-v122.js" || return 1
       /bin/cp "$UI_ASSETS/lms-browser-v122.js" "$WEB/scripts/lms-browser-v122.js" || return 1
       /bin/cp "$UI_ASSETS/lms-browser-v122.css" "$WEB/styles/lms-browser-v122.css" || return 1
+      /bin/cp "$UI_ASSETS/lms-canvas-fit.js" "$WEB/scripts/lms-canvas-fit.js" || return 1
       # V12.2 native Audio Unit reads embedded factory presets through bi().
       # One exact, guarded call injects the 100 additional Split variants.
       # Original 100 factory records and standalone user presets stay intact.
@@ -158,6 +160,10 @@ LOG="/Library/Logs/Pedal-Legends-Installation-Systeme.log"
       fi
       /usr/bin/grep -Fq 'lms-browser-v122.css' "$WEB/index.html" || return 1
       /usr/bin/grep -Fq 'lms-browser-v122.js' "$WEB/index.html" || return 1
+      if ! /usr/bin/grep -Fq 'lms-canvas-fit.js' "$WEB/index.html"; then
+        /usr/bin/perl -0pi -e 's#</body>#<script src="scripts/lms-canvas-fit.js"></script>\n</body>#' "$WEB/index.html" || return 1
+      fi
+      /usr/bin/grep -Fq 'lms-canvas-fit.js' "$WEB/index.html" || return 1
       /usr/bin/codesign --force --deep --sign - "$ORIGINAL" || return 1
       /usr/bin/codesign --verify --deep --strict "$ORIGINAL" || return 1
       return 0
