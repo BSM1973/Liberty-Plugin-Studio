@@ -100,20 +100,21 @@ void PedalLegendsBridgeProcessor::processBlock (juce::AudioBuffer<float>& audio,
     // original AU on the same input, with each stage enabled only in its lane.
     // Join at OUTPUT. Both lanes preserve the order of their assigned stages.
     if (mode == 2 && twoBranchReady.load() && splitEngineA != nullptr
-        && splitEngineB != nullptr && channels <= branchBFloat.getNumChannels()
-        && samples <= branchBFloat.getNumSamples())
+        && splitEngineB != nullptr && channels <= 2
+        && samples <= currentBlockSize)
     {
+        // Reuse allocated storage; avoid allocating a temporary channel view.
+        branchBFloat.setSize (channels, samples, false, false, true);
         for (int ch = 0; ch < channels; ++ch)
             branchBFloat.copyFrom (ch, 0, audio, ch, 0, samples);
-        juce::AudioBuffer<float> branchB (branchBFloat.getArrayOfWritePointers(), channels, samples);
         juce::MidiBuffer secondaryMidi;
         splitEngineA->processBlock (audio, midi);
-        splitEngineB->processBlock (branchB, secondaryMidi);
+        splitEngineB->processBlock (branchBFloat, secondaryMidi);
         const float amountB = juce::jlimit (0.0f, 1.0f, parallelBlend->get());
         for (int ch = 0; ch < channels; ++ch)
         {
             audio.applyGain (ch, 0, samples, 1.0f - amountB);
-            audio.addFrom (ch, 0, branchB, ch, 0, samples, amountB);
+            audio.addFrom (ch, 0, branchBFloat, ch, 0, samples, amountB);
         }
         return;
     }
@@ -150,20 +151,19 @@ void PedalLegendsBridgeProcessor::processBlock (juce::AudioBuffer<double>& audio
     if (mode == 2 && twoBranchReady.load() && splitEngineA != nullptr
         && splitEngineB != nullptr && splitEngineA->supportsDoublePrecisionProcessing()
         && splitEngineB->supportsDoublePrecisionProcessing()
-        && channels <= branchBDouble.getNumChannels()
-        && samples <= branchBDouble.getNumSamples())
+        && channels <= 2 && samples <= currentBlockSize)
     {
+        branchBDouble.setSize (channels, samples, false, false, true);
         for (int ch = 0; ch < channels; ++ch)
             branchBDouble.copyFrom (ch, 0, audio, ch, 0, samples);
-        juce::AudioBuffer<double> branchB (branchBDouble.getArrayOfWritePointers(), channels, samples);
         juce::MidiBuffer secondaryMidi;
         splitEngineA->processBlock (audio, midi);
-        splitEngineB->processBlock (branchB, secondaryMidi);
+        splitEngineB->processBlock (branchBDouble, secondaryMidi);
         const double amountB = juce::jlimit (0.0, 1.0, (double) parallelBlend->get());
         for (int ch = 0; ch < channels; ++ch)
         {
             audio.applyGain (ch, 0, samples, 1.0 - amountB);
-            audio.addFrom (ch, 0, branchB, ch, 0, samples, amountB);
+            audio.addFrom (ch, 0, branchBDouble, ch, 0, samples, amountB);
         }
         return;
     }
