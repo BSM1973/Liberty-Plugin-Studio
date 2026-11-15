@@ -94,6 +94,31 @@ namespace
             }
         }
 
+        // The original app exposes PMSETGUI, the same native window-size
+        // command used by its inner drag handle. Ask it to adopt JUCE's
+        // already-reserved board size ONCE when the pedalboard first appears.
+        // Do not resize the outer DAW/JUCE editor or add another CSS zoom.
+        // This explicitly reproduces the user's successful manual resize,
+        // but at initial opening instead of requiring a mouse drag.
+        if (changed || settling < 16)
+        {
+            juce::String init (
+                "(function(){"
+                "if(window.__lmsInitialBoardFill || "
+                "window._iplugEnv!=='webview' || "
+                "typeof window.IPlugSendMsg!=='function' || "
+                "!document.querySelector('#main .touring-board'))return;"
+                "window.__lmsInitialBoardFill=true;"
+                "window.IPlugSendMsg({msg:'PMSETGUI',width:");
+            init << wantedW << ",height:" << wantedH
+                 << "});"
+                    "window.dispatchEvent(new Event('resize'));"
+                    "setTimeout(function(){window.dispatchEvent(new Event('resize'));},150);"
+                    "})();";
+            NSString* command = [NSString stringWithUTF8String:init.toRawUTF8()];
+            [web evaluateJavaScript:command completionHandler:nil];
+        }
+
         // React's original CR component calculates scale from the viewport
         // on 'resize'. After embedding, that event can be missed, even when
         // JUCE has already called setBounds. Repeat during first two seconds,
