@@ -1,0 +1,50 @@
+/* History V12.1: whole button receives pointer input. The original editor
+   keeps every other control unchanged. Never let sibling labels overlay it. */
+#main .edit-panel .panel-topline {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  overflow: visible !important;
+  position: relative !important;
+  min-height: 118px !important;
+  height: auto !important;
+  gap: 9px !important;
+}
+#main .edit-panel .panel-topline > div:first-child {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+#main .edit-panel .panel-topline .panel-era {
+  flex: 0 1 125px !important;
+  max-width: 125px !important;
+  margin-left: 0 !important;
+  pointer-events: none !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+#main .edit-panel .panel-topline .lms-focused-history {
+  flex: 0 0 215px !important;
+  min-width: 215px !important;
+  min-height: 52px !important;
+  height: 52px !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  isolation: isolate !important;
+  z-index: 1000 !important;
+  pointer-events: auto !important;
+  white-space: normal !important;
+  cursor: pointer !important;
+  margin: 0 !important;
+  padding: 5px 12px !important;
+}
+#main .edit-panel .panel-topline .lms-focused-history * {
+  pointer-events: none !important;
+}
+#main .edit-panel .panel-topline .close-button {
+  flex: 0 0 34px !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
