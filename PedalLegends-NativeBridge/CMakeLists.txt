@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.22)
-project(LibertyPedalLegendsBridge VERSION 0.2.1 LANGUAGES C CXX)
+project(LibertyPedalLegendsBridge VERSION 0.2.2 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if (APPLE)
+  enable_language(OBJCXX)
   set(LMS_PLUGIN_FORMATS AU VST3)
   set(LMS_HOST_AU TRUE)
 elseif (WIN32)
@@ -44,6 +45,11 @@ target_sources(PedalLegendsBridge PRIVATE
   Source/PluginProcessor.cpp
   Source/PluginEditor.cpp
 )
+if (APPLE)
+  target_sources(PedalLegendsBridge PRIVATE Source/NativeWebRouting.mm)
+  target_link_libraries(PedalLegendsBridge PRIVATE "-framework Cocoa" "-framework WebKit")
+endif()
+
 target_compile_definitions(PedalLegendsBridge PUBLIC
   JUCE_WEB_BROWSER=0
   JUCE_USE_CURL=0
