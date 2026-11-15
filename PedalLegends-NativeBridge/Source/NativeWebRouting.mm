@@ -109,7 +109,7 @@ void lmsPushWebRouting (juce::AudioProcessorEditor& originalEditor,
     // CSS zoom preserves WebKit hit testing (unlike native affine transforms).
     // We measure the actual root bounding box after the original React layout
     // has run; if it already fits, nothing is changed.
-    static NSString* const fitScript = @R"JS(
+    NSString* fitScript = [NSString stringWithUTF8String:R"JS(
     (function () {
       if (window.__lmsNativeFitInstalled) return;
       window.__lmsNativeFitInstalled = true;
@@ -147,7 +147,7 @@ void lmsPushWebRouting (juce::AudioProcessorEditor& originalEditor,
       setTimeout(() => { passes = 0; queueFit(); }, 350);
       setTimeout(() => { passes = 0; queueFit(); }, 1100);
     })();
-    )JS";
+    )JS"];
     [web evaluateJavaScript:fitScript completionHandler:nil];
 
     // Install once per original WebView. The handler holds only a weak JUCE
