@@ -21,7 +21,6 @@ private:
     void syncRoutingControls();
 
     PedalLegendsBridgeProcessor& processor;
-    juce::Viewport boardViewport;
     std::unique_ptr<juce::AudioProcessorEditor> originalEditor;
     juce::Label statusLabel;
     juce::Label blendTitle;
