@@ -42,6 +42,15 @@ namespace
          || std::abs (rootBounds.height - wanted.height) > 3.0)
             return;
 
+        // First verify the WKWebView is a descendant of this exact AU editor
+        // before making ANY change to the AppKit hierarchy.
+        NSView* cursor = (NSView*) web;
+        int checkedDepth = 0;
+        while (cursor != nil && cursor != editorRoot && checkedDepth++ < 12)
+            cursor = [cursor superview];
+        if (cursor != editorRoot)
+            return;
+
         bool changed = false;
         NSView* current = (NSView*) web;
         int depth = 0;
