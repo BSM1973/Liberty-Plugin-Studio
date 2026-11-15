@@ -73,3 +73,23 @@
   color: #865f36 !important;
   font-weight: 700 !important;
 }
+
+
+/* The underlying React browser counts all 200 factory sounds together.
+   Show correct per-bank totals instead of its now misleading "All 201". */
+#main .preset-browser-panel .preset-categories > button b {
+  display: none !important;
+}
+#main .preset-browser-panel .panel-topline .library-total {
+  font-size: 0 !important;
+}
+#main .preset-browser-panel .panel-topline .library-total > * {
+  display: none !important;
+}
+#main .preset-browser-panel .panel-topline .library-total::after {
+  content: "100 SÉRIE + 100 SPLIT";
+  display: block;
+  font: 800 11px Arial,sans-serif !important;
+  letter-spacing: .3px;
+  color: #3d593c !important;
+}
