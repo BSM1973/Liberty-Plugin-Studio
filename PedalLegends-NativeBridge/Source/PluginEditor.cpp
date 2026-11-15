@@ -10,7 +10,7 @@ namespace
     const juce::Colour copper (0xffb78e55);
     const juce::Colour ivory (0xfff3ead5);
     const juce::Colour border (0xffa78e67);
-    constexpr int routingHeaderHeight = 136;
+    constexpr int routingHeaderHeight = 165;
 }
 
 PedalLegendsBridgeEditor::PedalLegendsBridgeEditor (PedalLegendsBridgeProcessor& p)
@@ -92,8 +92,14 @@ PedalLegendsBridgeEditor::PedalLegendsBridgeEditor (PedalLegendsBridgeProcessor&
 
     // The original pedalboard is 1440x960. The premium header is added
     // above it, not drawn over its controls.
-    setResizable (false, false);
-    setSize (1380, 950);
+    // The board has a fixed 3:2 internal layout. Lock the host to the
+    // combined routing-header + board ratio so a drag cannot create
+    // unbounded empty margins or clip the content.
+    setResizable (true, true);
+    setResizeLimits (990, 810, 1430, 1170);
+    if (auto* constrainer = getConstrainer())
+        constrainer->setFixedAspectRatio (11.0 / 9.0);
+    setSize (1100, 900);
     syncRoutingControls();
     startTimerHz (8);
 }
@@ -198,7 +204,7 @@ void PedalLegendsBridgeEditor::timerCallback()
 
 void PedalLegendsBridgeEditor::paint (juce::Graphics& g)
 {
-    g.fillAll (juce::Colour (0xffede5d3));
+    g.fillAll (olive);
     juce::Rectangle<float> bar (10.0f, 7.0f, (float) getWidth() - 20.0f,
                                 (float) routingHeaderHeight - 14.0f);
 
@@ -267,6 +273,6 @@ void PedalLegendsBridgeEditor::resized()
     statusLabel.setBounds (board.reduced (25));
     if (originalEditor != nullptr)
         originalEditor->setBounds (board);
-    routingDiagram.setBounds (20, 96, juce::jmax (0, getWidth() - 40), 36);
+    routingDiagram.setBounds (20, 96, juce::jmax (0, getWidth() - 40), 65);
     routingDiagram.toFront (false);
 }
