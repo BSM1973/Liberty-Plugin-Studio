@@ -102,8 +102,6 @@ PedalLegendsBridgeEditor::~PedalLegendsBridgeEditor()
 {
     stopTimer();
     cancelPendingUpdate();
-    if (originalEditor != nullptr)
-        originalEditor->removeComponentListener (this);
     originalEditor.reset();
     for (auto& button : modeButtons) button.setLookAndFeel (nullptr);
     for (auto& button : stageLaneButtons) button.setLookAndFeel (nullptr);
@@ -184,8 +182,10 @@ void PedalLegendsBridgeEditor::timerCallback()
             originalEditor.reset (inner->createEditorIfNeeded());
             if (originalEditor != nullptr)
             {
+                // Disable the hosted AU's JUCE resize corner as well as the
+                // outer host resize. Audio controls remain interactive.
+                originalEditor->setResizable (false, false);
                 addAndMakeVisible (originalEditor.get());
-                originalEditor->addComponentListener (this);
                 statusLabel.setVisible (false);
                 routingDiagram.toFront (false);
                 // Do not allow the hosted AU's advertised preferred dimensions
