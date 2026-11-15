@@ -22,59 +22,52 @@
     return node;
   }
 
-  function connect(from, to, lane) {
-    const x1 = from.x, y1 = from.y, x2 = to.x, y2 = to.y;
-    const shift = lane ? 10 : -10;
-    if (Math.abs(y2 - y1) < 10 && x2 >= x1 && x2 - x1 <= 280) {
-      const bend = Math.min(30, (x2 - x1) / 4);
-      return 'M' + x1 + ' ' + y1 +
-             ' C' + (x1 + bend) + ' ' + (y1 + shift) + ' ' +
-             (x2 - bend) + ' ' + (y2 + shift) + ' ' + x2 + ' ' + y2;
-    }
-    // Travel through the vacant space between the two pedal rows. The SVG is
-    // painted behind the pedal enclosures, with cables visible in the gutters.
-    const corridor = lane ? 318 : 290;
-    const escapeX = x1 + 20;
-    const approachX = x2 - 20;
-    return 'M' + x1 + ' ' + y1 +
-           ' C' + (x1 + 14) + ' ' + y1 + ' ' + escapeX + ' ' + (corridor - 14) +
-           ' ' + escapeX + ' ' + corridor +
-           ' L' + approachX + ' ' + corridor +
-           ' C' + approachX + ' ' + (corridor + 14) + ' ' + (x2 - 14) +
-           ' ' + y2 + ' ' + x2 + ' ' + y2;
+  // V12.1.1 — minimal two-rail patch: no zigzags or criss-crossed
+  // brown wires. There are always just TWO uninterrupted horizontal paths
+  // in the empty corridor between the two original rows of pedals.
+  // Each pedal receives a short local connection marker to the rail
+  // indicated by its A/B badge, not a cable crossing other pedals.
+  const railY = [299, 312];
+
+  function addCable(group, path, extraClass = "") {
+    const outline = svgElement("path", {
+      d: path, class: "lms-cable-outline " + extraClass
+    });
+    const wire = svgElement("path", {
+      d: path, class: "lms-cable-inner " + extraClass
+    });
+    group.append(outline, wire);
   }
 
   function drawLane(group, lane) {
-    const slots = state.lanes.map((choice, i) => choice === lane ? i : -1).filter(i => i >= 0);
-    const start = { x: 28, y: lane ? 316 : 295 };
-    const output = { x: 1311, y: lane ? 316 : 295 };
-    const segments = [];
-    if (slots.length === 0) {
-      segments.push(connect(start, output, lane));
-    } else {
-      const first = stageRects[slots[0]];
-      segments.push(connect(start, { x: first[0], y: first[2] }, lane));
-      for (let j = 1; j < slots.length; ++j) {
-        const prev = stageRects[slots[j - 1]];
-        const next = stageRects[slots[j]];
-        segments.push(connect({ x: prev[1], y: prev[2] },
-                              { x: next[0], y: next[2] }, lane));
-      }
-      const last = stageRects[slots[slots.length - 1]];
-      segments.push(connect({ x: last[1], y: last[2] }, output, lane));
-    }
-    const sub = svgElement("g", { class: "lms-cable-lane lms-cable-" + laneNames[lane] });
-    for (const d of segments) {
-      const outline = svgElement("path", { d, class: "lms-cable-outline" });
-      const wire = svgElement("path", { d, class: "lms-cable-inner" });
-      sub.append(outline, wire);
+    const y = railY[lane];
+    const sub = svgElement("g", {
+      class: "lms-cable-lane lms-cable-" + laneNames[lane]
+    });
+    // One uninterrupted rail from the entrance split to the output merge.
+    // The only bends are two short, fixed 45-degree joins at its ends.
+    addCable(sub, "M 29 305 L 47 " + y + " H 1293 L 1311 305", "lms-rail");
+
+    // Eight compact connectors at most. All are perpendicular to the rail,
+    // extend at most 7 px, and never intersect the opposite brown rail.
+    for (let i = 0; i < state.lanes.length; ++i) {
+      if (state.lanes[i] !== lane) continue;
+      const rect = stageRects[i];
+      const x = Math.round((rect[0] + rect[1]) / 2);
+      const direction = i < 4 ? -1 : 1;
+      const tip = y + direction * 7;
+      addCable(sub, "M " + x + " " + y + " V " + tip, "lms-stage-connector");
+      sub.append(svgElement("circle", {
+        cx:x, cy:y, r:3.8, class:"lms-cable-port"
+      }));
     }
     group.append(sub);
   }
 
   function drawCableJunction(group, x, y) {
-    const c = svgElement("circle", { cx: x, cy: y, r: 12, class: "lms-cable-junction" });
-    group.append(c);
+    group.append(svgElement("circle", {
+      cx:x, cy:y, r:7, class:"lms-cable-junction"
+    }));
   }
 
   function refresh() {
@@ -121,8 +114,8 @@
     // Routes are brown, with subtle copper/gold tint to distinguish branches.
     drawLane(group, 0);
     drawLane(group, 1);
-    drawCableJunction(group, 27, 305);
-    drawCableJunction(group, 1313, 305);
+    drawCableJunction(group, 29, 305);
+    drawCableJunction(group, 1311, 305);
     svg.appendChild(group);
   }
 
