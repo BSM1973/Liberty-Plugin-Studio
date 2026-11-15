@@ -1,0 +1,35 @@
+/* Pedal Legends V11 — no clipped hit zones in the pedal detail header. */
+#main .edit-panel .panel-topline {
+  height: auto !important;
+  min-height: 108px !important;
+  overflow: visible !important;
+  flex-wrap: wrap !important;
+  align-content: center !important;
+  gap: 8px 12px !important;
+}
+#main .edit-panel .panel-topline .lms-focused-history {
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  z-index: 20 !important;
+  isolation: isolate !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  min-height: 48px !important;
+  min-width: 205px !important;
+  text-align: center !important;
+  padding: 9px 16px !important;
+}
+#main .edit-panel .panel-topline .lms-focused-history::before,
+#main .edit-panel .panel-topline .lms-focused-history::after {
+  pointer-events: none !important;
+}
+#main .edit-panel .edit-illustration > p {
+  color: #193628 !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  line-height: 1.5 !important;
+  overflow-wrap: break-word !important;
+}
