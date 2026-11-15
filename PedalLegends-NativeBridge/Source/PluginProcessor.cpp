@@ -281,6 +281,22 @@ void PedalLegendsBridgeProcessor::finishCreation (
 }
 
 
+void PedalLegendsBridgeProcessor::recallFactoryPresetRouting (
+    int requestedMode, const std::array<int, 8>& lanes, float balance)
+{
+    jassert (juce::MessageManager::getInstance()->isThisTheMessageThread());
+    const int mode = juce::jlimit (0, 2, requestedMode);
+    // Update the bank's complete routing transaction before switching mode.
+    for (int stage = 0; stage < 8; ++stage)
+        stageLanes[(size_t) stage]->setValueNotifyingHost (
+            (float) juce::jlimit (0, 1, lanes[(size_t) stage]));
+    parallelBlend->setValueNotifyingHost (juce::jlimit (0.0f, 1.0f, balance));
+    routingMode->setValueNotifyingHost ((float) mode / 2.0f);
+    if (mode == 2 && engine != nullptr)
+        ensureSplitEngines();
+    updateHostDisplay();
+}
+
 void PedalLegendsBridgeProcessor::timerCallback()
 {
     // All AU parameter mirroring is on the message thread, never in processBlock.
