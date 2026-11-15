@@ -17,12 +17,21 @@ PedalLegendsBridgeProcessor::PedalLegendsBridgeProcessor()
 {
     routingMode = new juce::AudioParameterChoice (
         juce::ParameterID { "lms_route_mode", 1 }, "Routage",
-        juce::StringArray { "Série", "Parallèle (direct + effets)" }, 0);
+        juce::StringArray { "Série", "Parallèle (direct + effets)", "SPLIT A / B (deux chaînes)" }, 0);
     parallelBlend = new juce::AudioParameterFloat (
         juce::ParameterID { "lms_parallel_blend", 1 }, "Dosage parallèle",
         juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.5f);
     addParameter (routingMode);
     addParameter (parallelBlend);
+    for (int stage = 0; stage < 8; ++stage)
+    {
+        stageLanes[(size_t) stage] = new juce::AudioParameterChoice (
+            juce::ParameterID { "lms_split_stage_" + juce::String (stage + 1), 1 },
+            "Branche étage " + juce::String (stage + 1),
+            juce::StringArray { "A", "B" }, stage < 4 ? 0 : 1);
+        addParameter (stageLanes[(size_t) stage]);
+    }
+    stageEnabledParameterIndices.fill (-1);
     formatManager.addDefaultFormats();
     triggerAsyncUpdate();
 }
@@ -30,7 +39,11 @@ PedalLegendsBridgeProcessor::PedalLegendsBridgeProcessor()
 PedalLegendsBridgeProcessor::~PedalLegendsBridgeProcessor()
 {
     cancelPendingUpdate();
+    stopTimer();
     const juce::SpinLock::ScopedLockType lock (engineLock);
+    twoBranchReady.store (false);
+    splitEngineA.reset();
+    splitEngineB.reset();
     engine.reset();
 }
 
@@ -50,8 +63,14 @@ void PedalLegendsBridgeProcessor::prepareToPlay (double sampleRate, int blockSiz
     // Allocate only off the audio thread. Serial mode remains unchanged.
     dryFloat.setSize (2, juce::jmax (64, blockSize), false, false, true);
     dryDouble.setSize (2, juce::jmax (64, blockSize), false, false, true);
+    branchBFloat.setSize (2, juce::jmax (64, blockSize), false, false, true);
+    branchBDouble.setSize (2, juce::jmax (64, blockSize), false, false, true);
     if (engine != nullptr)
         engine->prepareToPlay (sampleRate, blockSize);
+    if (splitEngineA != nullptr)
+        splitEngineA->prepareToPlay (sampleRate, blockSize);
+    if (splitEngineB != nullptr)
+        splitEngineB->prepareToPlay (sampleRate, blockSize);
 }
 
 void PedalLegendsBridgeProcessor::releaseResources()
@@ -60,6 +79,10 @@ void PedalLegendsBridgeProcessor::releaseResources()
     prepared = false;
     if (engine != nullptr)
         engine->releaseResources();
+    if (splitEngineA != nullptr)
+        splitEngineA->releaseResources();
+    if (splitEngineB != nullptr)
+        splitEngineB->releaseResources();
 }
 
 void PedalLegendsBridgeProcessor::processBlock (juce::AudioBuffer<float>& audio, juce::MidiBuffer& midi)
@@ -172,6 +195,8 @@ void PedalLegendsBridgeProcessor::startOriginalAU()
 
     refreshStatus (juce::String::fromUTF8 (u8"Chargement du moteur audio d'origine..."));
     const auto description = *matches.getFirst();
+    originalDescription = description;
+    originalDescriptionValid = true;
     auto weak = juce::WeakReference<PedalLegendsBridgeProcessor> (this);
     formatManager.createPluginInstanceAsync (
         description, currentSampleRate, currentBlockSize,
@@ -204,6 +229,9 @@ void PedalLegendsBridgeProcessor::finishCreation (
         engine = std::move (instance);
     }
     refreshStatus (juce::String::fromUTF8 (u8"Moteur original chargé - 40 pédales disponibles dans son interface."));
+    startTimerHz (15); // synchronize edits to the two independent split engines off the audio thread
+    if (routingMode->getIndex() == 2)
+        ensureSplitEngines();
 }
 
 void PedalLegendsBridgeProcessor::restoreSnapshot (juce::AudioPluginInstance& destination)
@@ -228,6 +256,9 @@ void PedalLegendsBridgeProcessor::getStateInformation (juce::MemoryBlock& out)
     stream.writeInt (0x504C5231); // PLR1
     stream.writeInt (routingMode->getIndex());
     stream.writeFloat (parallelBlend->get());
+    stream.writeInt (0x504C5331); // PLS1: dual-branch assignment extension
+    for (const auto* lane : stageLanes)
+        stream.writeInt (lane->getIndex());
 }
 
 void PedalLegendsBridgeProcessor::setStateInformation (const void* data, int dataSize)
@@ -242,10 +273,13 @@ void PedalLegendsBridgeProcessor::setStateInformation (const void* data, int dat
     if (stream.read (snapshot.getData(), (size_t) size) != size) return;
     if (stream.getNumBytesRemaining() >= 12 && stream.readInt() == 0x504C5231)
     {
-        const int restoredMode = juce::jlimit (0, 1, stream.readInt());
+        const int restoredMode = juce::jlimit (0, 2, stream.readInt());
         const float restoredBlend = juce::jlimit (0.0f, 1.0f, stream.readFloat());
-        routingMode->setValueNotifyingHost ((float) restoredMode);
+        routingMode->setValueNotifyingHost ((float) restoredMode / 2.0f);
         parallelBlend->setValueNotifyingHost (restoredBlend);
+        if (stream.getNumBytesRemaining() >= 36 && stream.readInt() == 0x504C5331)
+            for (auto* lane : stageLanes)
+                lane->setValueNotifyingHost ((float) juce::jlimit (0, 1, stream.readInt()));
     }
     else
     {
