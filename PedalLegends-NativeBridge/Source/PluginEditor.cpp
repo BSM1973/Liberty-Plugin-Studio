@@ -10,7 +10,7 @@ namespace
     const juce::Colour copper (0xffb78e55);
     const juce::Colour ivory (0xfff3ead5);
     const juce::Colour border (0xffa78e67);
-    constexpr int routingHeaderHeight = 214;
+    constexpr int routingHeaderHeight = 134;
 }
 
 PedalLegendsBridgeEditor::PedalLegendsBridgeEditor (PedalLegendsBridgeProcessor& p)
@@ -93,7 +93,7 @@ PedalLegendsBridgeEditor::PedalLegendsBridgeEditor (PedalLegendsBridgeProcessor&
     // The original pedalboard is 1440x960. The premium header is added
     // above it, not drawn over its controls.
     setResizable (false, false);
-    setSize (1520, 1220);
+    setSize (1040, 827);
     syncRoutingControls();
     startTimerHz (8);
 }
@@ -188,9 +188,9 @@ void PedalLegendsBridgeEditor::timerCallback()
                 originalEditor->addComponentListener (this);
                 statusLabel.setVisible (false);
                 routingDiagram.toFront (false);
-                const auto pref = originalEditor->getBounds();
-                setSize (juce::jlimit (1000, 1900, juce::jmax (1520, pref.getWidth())),
-                         juce::jlimit (760, 1320, juce::jmax (1220, pref.getHeight() + routingHeaderHeight)));
+                // Do not allow the hosted AU's advertised preferred dimensions
+                // to enlarge the JUCE host. This was introduced with Split.
+                // The original WebView receives exactly the area below the header.
                 resized();
             }
         }
@@ -211,43 +211,32 @@ void PedalLegendsBridgeEditor::paint (juce::Graphics& g)
     g.drawRoundedRectangle (bar, 14.0f, 1.3f);
 
     g.setColour (olive);
-    g.fillRoundedRectangle (20.0f, 17.0f, 180.0f, 68.0f, 10.0f);
+    g.fillRoundedRectangle (12.0f, 10.0f, 178.0f, 49.0f, 9.0f);
     g.setColour (ivory);
     g.setFont (juce::Font (juce::FontOptions ("Arial", 11.0f, juce::Font::bold)));
-    g.drawFittedText ("LIBERTY", 31, 22, 155, 18, juce::Justification::centredLeft, 1);
+    g.drawFittedText ("LIBERTY", 23, 12, 155, 17, juce::Justification::centredLeft, 1);
     g.setFont (juce::Font (juce::FontOptions ("Arial", 16.0f, juce::Font::bold)));
-    g.drawFittedText ("ROUTAGE AUDIO", 31, 42, 163, 24, juce::Justification::centredLeft, 1);
+    g.drawFittedText ("ROUTAGE AUDIO", 23, 31, 161, 22, juce::Justification::centredLeft, 1);
 
     g.setColour (juce::Colour (0xff877356));
     g.setFont (juce::Font (juce::FontOptions ("Arial", 9.5f, juce::Font::bold)));
-    g.drawFittedText ("MODE DE SIGNAL", 213, 12, 322, 19,
+    g.drawFittedText ("MODE DE SIGNAL", 205, 3, 260, 16,
                       juce::Justification::centredLeft, 1);
-    g.drawFittedText ("AFFECTATION DES 8 PEDALES (A / B)", 529, 66, 478, 17,
+    g.drawFittedText ("A / B", 495, 45, 47, 17,
                       juce::Justification::centredLeft, 1);
     g.setColour (juce::Colour (0xffb59360));
-    g.drawHorizontalLine (110, 25.0f, (float) getWidth() - 25.0f);
+    g.drawHorizontalLine (64, 14.0f, (float) getWidth() - 14.0f);
 }
 
-void PedalLegendsBridgeEditor::componentMovedOrResized (juce::Component& child,
-                                                       bool, bool wasResized)
+void PedalLegendsBridgeEditor::componentMovedOrResized (juce::Component&, bool, bool)
 {
-    if (! wasResized || &child != originalEditor.get() || updatingChildLayout)
-        return;
-    if (child.getWidth() < 320 || child.getHeight() < 240)
-        return;
-    pendingWidth = child.getWidth();
-    pendingHeight = child.getHeight() + routingHeaderHeight;
-    triggerAsyncUpdate();
+    // The original AU editor's internal drag handle must never resize the
+    // containing DAW window. Its native sizing is independent of this host.
 }
 
 void PedalLegendsBridgeEditor::handleAsyncUpdate()
 {
-    if (originalEditor == nullptr || pendingWidth <= 0 || pendingHeight <= 0)
-        return;
-    const int targetW = juce::jlimit (700, 2400, pendingWidth);
-    const int targetH = juce::jlimit (480, 1800, pendingHeight);
-    if (targetW != getWidth() || targetH != getHeight())
-        setSize (targetW, targetH);
+    // No second, asynchronous resizing pass after the AU appears.
 }
 
 void PedalLegendsBridgeEditor::resized()
@@ -257,28 +246,25 @@ void PedalLegendsBridgeEditor::resized()
     auto board = full;
     board.removeFromTop (routingHeaderHeight);
 
-    int buttonX = 213;
-    const int modeWidths[] = { 95, 142, 133 };
+    // 134-point native router; no overlay and no resize feedback into AU.
+    int buttonX = 205;
+    const int modeWidths[] = { 76, 123, 108 };
     for (int i = 0; i < 3; ++i)
     {
-        modeButtons[(size_t) i].setBounds (buttonX, 32, modeWidths[i], 31);
-        buttonX += modeWidths[i] + 7;
+        modeButtons[(size_t) i].setBounds (buttonX, 21, modeWidths[i], 28);
+        buttonX += modeWidths[i] + 6;
     }
 
-    blendTitle.setBounds (625, 13, 207, 18);
-    blendSlider.setBounds (625, 32, 255, 31);
+    blendTitle.setBounds (555, 3, 188, 16);
+    blendSlider.setBounds (555, 19, 245, 29);
 
-    const bool roomy = getWidth() >= 1045;
-    const int startX = roomy ? 529 : 0;
     for (int i = 0; i < 8; ++i)
-        stageLaneButtons[(size_t) i].setBounds (
-            roomy ? juce::Rectangle<int> (startX + 58 * i, 83, 54, 26) : juce::Rectangle<int>());
-    routingStatus.setBounds (roomy ? 1020 : 610, 83,
-                             roomy ? getWidth() - 1050 : getWidth() - 640, 25);
+        stageLaneButtons[(size_t) i].setBounds (544 + 56 * i, 45, 52, 20);
+    routingStatus.setBounds (805, 2, juce::jmax (0, getWidth() - 816), 17);
 
     statusLabel.setBounds (board.reduced (25));
     if (originalEditor != nullptr)
         originalEditor->setBounds (board);
-    routingDiagram.setBounds (20, 119, juce::jmax (0, getWidth() - 40), 85);
+    routingDiagram.setBounds (10, 65, juce::jmax (0, getWidth() - 20), 68);
     routingDiagram.toFront (false);
 }
