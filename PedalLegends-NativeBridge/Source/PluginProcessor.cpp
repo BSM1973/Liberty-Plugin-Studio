@@ -375,8 +375,10 @@ void PedalLegendsBridgeProcessor::finishSplitCreation (
         for (int i = 0; i < engine->getParameters().size(); ++i)
         {
             auto* hosted = engine->getHostedParameter (i);
-            auto id = hosted != nullptr ? hosted->getParameterID()
-                                        : engine->getParameters()[i]->getName (128);
+            // AU parameter IDs can be opaque numeric codes; include the
+            // human-readable name as well when resolving the eight bypasses.
+            auto id = (hosted != nullptr ? hosted->getParameterID() : juce::String()) +
+                      " " + engine->getParameters()[i]->getName (128);
             id = id.toLowerCase().retainCharacters ("abcdefghijklmnopqrstuvwxyz0123456789");
             for (int stage = 0; stage < 8; ++stage)
                 if (id.contains ("slot" + juce::String (stage + 1) + "enabled"))
