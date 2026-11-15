@@ -14,6 +14,7 @@
 .lms-native-layout{padding:0!important;display:flex!important;align-items:center!important;justify-content:center!important}
 .lms-native-frame{width:var(--lms-frame-w)!important;height:var(--lms-frame-h)!important;flex-shrink:0!important;margin:0!important}
 .lms-native-viewport{width:var(--lms-frame-w)!important;height:var(--lms-frame-h)!important;border-radius:0!important;overflow:hidden!important}
+.lms-native-webview-scaler{transform:scale(var(--lms-fit-scale))!important;transform-origin:center center!important}
 .lms-native-scaler{transform:scale(var(--lms-fit-scale))!important;transform-origin:top left!important;width:1440px!important;height:960px!important}
 `;
   document.head.appendChild(style);
@@ -30,6 +31,14 @@
 
     const ratio = Math.min(width / baseWidth, height / baseHeight);
     const frameWidth = baseWidth * ratio, frameHeight = baseHeight * ratio;
+    // PluginMaker's native Audio Unit uses a DIFFERENT DOM wrapper:
+    // centered, full-screen WebView with its own native scaling. Retain its
+    // centered transform origin; do not hide any parent or move the canvas.
+    if (document.body.classList.contains("webview-mode") || window._iplugEnv === "webview") {
+      scaler.classList.add("lms-native-webview-scaler");
+      document.documentElement.style.setProperty("--lms-fit-scale", ratio.toFixed(8));
+      return;
+    }
     const title = frame.firstElementChild, bar = shell.firstElementChild;
     if (title && title !== viewport) title.classList.add("lms-native-fake-title");
     if (bar && bar !== layout) bar.classList.add("lms-native-topbar");
