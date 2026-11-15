@@ -48,8 +48,10 @@ public:
         const float w = bounds.getWidth();
         const float cx = bounds.getX();
         const float cy = bounds.getY() + bounds.getHeight() / 2.0f;
-        const float yA = bounds.getY() + 24.0f;
-        const float yB = bounds.getBottom() - 22.0f;
+        // Compact native header: maximize separation between A and B
+        // rather than allowing their 25px stage chips to overlap.
+        const float yA = bounds.getY() + 18.0f;
+        const float yB = bounds.getBottom() - 18.0f;
         const float xSplit = cx + 95.0f;
         const float xJoin = bounds.getRight() - 103.0f;
         const float xRailStart = xSplit + 88.0f;
