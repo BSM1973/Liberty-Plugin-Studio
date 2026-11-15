@@ -1,6 +1,7 @@
 #pragma once
 #include "PluginProcessor.h"
 #include "SplitGraphic.h"
+#include "RoutingTheme.h"
 
 class PedalLegendsBridgeEditor final : public juce::AudioProcessorEditor,
                                       private juce::Timer,
@@ -27,6 +28,7 @@ private:
     std::array<juce::TextButton, 3> modeButtons;
     std::array<juce::TextButton, 8> stageLaneButtons;
     juce::Slider blendSlider;
+    PedalLegendsRoutingTheme routingTheme;
     PedalLegendsSplitGraphic splitGraphic;
 
     bool updatingChildLayout = false;

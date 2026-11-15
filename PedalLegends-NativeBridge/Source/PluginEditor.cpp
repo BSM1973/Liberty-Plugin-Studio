@@ -7,7 +7,7 @@ namespace
     const juce::Colour copper (0xffb78e55);
     const juce::Colour ivory (0xfff3ead5);
     const juce::Colour border (0xffa78e67);
-    constexpr int routingHeaderHeight = 104;
+    constexpr int routingHeaderHeight = 116;
 }
 
 PedalLegendsBridgeEditor::PedalLegendsBridgeEditor (PedalLegendsBridgeProcessor& p)
@@ -27,6 +27,7 @@ PedalLegendsBridgeEditor::PedalLegendsBridgeEditor (PedalLegendsBridgeProcessor&
     {
         auto& button = modeButtons[(size_t) i];
         button.setButtonText (modes[i]);
+        button.setLookAndFeel (&routingTheme);
         button.setTooltip (i == 0 ? "Huit effets dans l'ordre original" :
                            i == 1 ? "Signal direct et effets, en parallèle" :
                                     "Deux chaînes de pédales distinctes, A et B, réunies à la sortie");
@@ -65,6 +66,7 @@ PedalLegendsBridgeEditor::PedalLegendsBridgeEditor (PedalLegendsBridgeProcessor&
     for (int i = 0; i < 8; ++i)
     {
         auto& button = stageLaneButtons[(size_t) i];
+        button.setLookAndFeel (&routingTheme);
         button.setTooltip ("Pédale " + juce::String (i + 1) + ": choisir son chemin A ou B");
         button.setColour (juce::TextButton::textColourOffId, ivory);
         button.onClick = [this, i]
@@ -87,7 +89,7 @@ PedalLegendsBridgeEditor::PedalLegendsBridgeEditor (PedalLegendsBridgeProcessor&
     // The original pedalboard is 1440x960. The premium header is added
     // above it, not drawn over its controls.
     setResizable (false, false);
-    setSize (1520, 1080);
+    setSize (1520, 1100);
     syncRoutingControls();
     startTimerHz (8);
 }
@@ -99,6 +101,8 @@ PedalLegendsBridgeEditor::~PedalLegendsBridgeEditor()
     if (originalEditor != nullptr)
         originalEditor->removeComponentListener (this);
     originalEditor.reset();
+    for (auto& button : modeButtons) button.setLookAndFeel (nullptr);
+    for (auto& button : stageLaneButtons) button.setLookAndFeel (nullptr);
 }
 
 void PedalLegendsBridgeEditor::syncRoutingControls()
@@ -175,7 +179,7 @@ void PedalLegendsBridgeEditor::timerCallback()
                 splitGraphic.toFront (false);
                 const auto pref = originalEditor->getBounds();
                 setSize (juce::jlimit (1000, 1900, juce::jmax (1520, pref.getWidth())),
-                         juce::jlimit (760, 1320, juce::jmax (1080, pref.getHeight() + routingHeaderHeight)));
+                         juce::jlimit (760, 1320, juce::jmax (1100, pref.getHeight() + routingHeaderHeight)));
                 resized();
             }
         }
@@ -207,10 +211,10 @@ void PedalLegendsBridgeEditor::paint (juce::Graphics& g)
     g.setFont (juce::Font (juce::FontOptions ("Arial", 9.5f, juce::Font::bold)));
     g.drawFittedText ("MODE DE SIGNAL", 213, 12, 322, 19,
                       juce::Justification::centredLeft, 1);
-    g.drawFittedText ("AFFECTATION DES 8 PEDALES (A / B)", 529, 55, 478, 17,
+    g.drawFittedText ("AFFECTATION DES 8 PEDALES (A / B)", 529, 66, 478, 17,
                       juce::Justification::centredLeft, 1);
     g.setColour (juce::Colour (0xffb59360));
-    g.drawHorizontalLine (54, 210.0f, (float) getWidth() - 24.0f);
+    g.drawHorizontalLine (70, 210.0f, (float) getWidth() - 24.0f);
 }
 
 void PedalLegendsBridgeEditor::componentMovedOrResized (juce::Component& child,
@@ -257,8 +261,8 @@ void PedalLegendsBridgeEditor::resized()
     const int startX = roomy ? 529 : 0;
     for (int i = 0; i < 8; ++i)
         stageLaneButtons[(size_t) i].setBounds (
-            roomy ? juce::Rectangle<int> (startX + 58 * i, 73, 54, 26) : juce::Rectangle<int>());
-    routingStatus.setBounds (roomy ? 1020 : 610, 73,
+            roomy ? juce::Rectangle<int> (startX + 58 * i, 83, 54, 26) : juce::Rectangle<int>());
+    routingStatus.setBounds (roomy ? 1020 : 610, 83,
                              roomy ? getWidth() - 1050 : getWidth() - 640, 25);
 
     statusLabel.setBounds (board.reduced (25));

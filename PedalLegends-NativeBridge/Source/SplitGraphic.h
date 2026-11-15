@@ -59,14 +59,26 @@ public:
             };
         }
 
-        // Two clear parallel patch rails in unused areas of the board.
-        // Their small connections are visually linked to the pedal outlines.
-        const float topRailY = 179.0f;
-        const float midRailY = 491.0f;
-        g.setColour (aColour.withAlpha (ready ? 0.75f : 0.35f));
-        g.drawLine (58.0f, topRailY, 1386.0f, topRailY, 2.0f);
-        g.setColour (bColour.withAlpha (ready ? 0.75f : 0.35f));
-        g.drawLine (58.0f, midRailY, 1386.0f, midRailY, 2.0f);
+        // Both A and B run across BOTH rows. A stage connects to its
+        // own rail regardless of physical row, so upper != A and lower != B.
+        // Rails sit in the original board's empty 8-12px horizontal gaps.
+        const std::array<float, 2> railCenters { 179.0f, 491.0f };
+        for (float centre : railCenters)
+        {
+            g.setColour (aColour.withAlpha (ready ? 0.73f : 0.32f));
+            g.drawLine (58.0f, centre - 3.0f, 1386.0f, centre - 3.0f, 2.2f);
+            g.setColour (bColour.withAlpha (ready ? 0.73f : 0.32f));
+            g.drawLine (58.0f, centre + 3.0f, 1386.0f, centre + 3.0f, 2.2f);
+        }
+
+        // Branching and merge joints lie in the side gutters, never on knobs.
+        for (float edgeX : { 45.0f, 1400.0f })
+        {
+            g.setColour (aColour.withAlpha (ready ? 0.65f : 0.26f));
+            g.drawLine (edgeX, 176.0f, edgeX, 488.0f, 2.2f);
+            g.setColour (bColour.withAlpha (ready ? 0.65f : 0.26f));
+            g.drawLine (edgeX + 5.0f, 182.0f, edgeX + 5.0f, 494.0f, 2.2f);
+        }
 
         for (int i = 0; i < 8; ++i)
         {
@@ -91,23 +103,18 @@ public:
             // A short cable lead in the slot margin; no line crosses
             // the pedal control surface or blocks pointer events.
             const float connectorX = r.getCentreX();
-            if (i < 4)
-            {
-                g.drawLine (connectorX, topRailY, connectorX, r.getY(), 2.2f);
-                g.fillEllipse (connectorX - 3.0f, topRailY - 3.0f, 6.0f, 6.0f);
-            }
-            else
-            {
-                g.drawLine (connectorX, midRailY, connectorX, r.getY(), 2.2f);
-                g.fillEllipse (connectorX - 3.0f, midRailY - 3.0f, 6.0f, 6.0f);
-            }
+            const float rail = railCenters[(size_t) (i / 4)] + (laneB ? 3.0f : -3.0f);
+            g.drawLine (connectorX, rail, connectorX, r.getY(), 2.2f);
+            g.fillEllipse (connectorX - 3.2f, rail - 3.2f, 6.4f, 6.4f);
         }
 
         g.setFont (juce::Font (juce::FontOptions ("Arial", 10.0f, juce::Font::bold)));
         g.setColour (aColour);
-        g.drawFittedText ("CHEMIN A", 59, 156, 110, 18, juce::Justification::centredLeft, 1);
+        g.drawFittedText ("A", 53, 157, 18, 16, juce::Justification::centredLeft, 1);
+        g.drawFittedText ("A", 53, 469, 18, 16, juce::Justification::centredLeft, 1);
         g.setColour (bColour);
-        g.drawFittedText ("CHEMIN B", 59, 471, 110, 18, juce::Justification::centredLeft, 1);
+        g.drawFittedText ("B", 77, 157, 18, 16, juce::Justification::centredLeft, 1);
+        g.drawFittedText ("B", 77, 469, 18, 16, juce::Justification::centredLeft, 1);
         if (! ready)
         {
             g.setColour (juce::Colour (0xfff3e5cd));
