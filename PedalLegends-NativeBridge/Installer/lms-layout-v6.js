@@ -54,6 +54,8 @@
   "39": "Harmoniseur à délai tenant compte de la période détectée, proposant deux intervalles chromatiques fixes pour les lignes monophoniques. La fenêtre suit des périodes entières ; pas de reconnaissance de gamme ni de suivi polyphonique.",
   "40": "Réseau musical de délais diffusés et modulés, avec réinjection croisée stéréo, dérive rythmique d'amplitude et saturation douce. Aucun bruit généré artificiellement."
 };
+  // Shared French technical references for the native pedal editor as well.
+  window.LMS_TECHNICAL_FR = technicalFrench;
   function translateTechnicalDescription(lang) {
     if (lang !== 'fr') return;
     const detail = document.querySelector('.lms-encyclopedia-dialog .lms-encyclopedia-detail');
