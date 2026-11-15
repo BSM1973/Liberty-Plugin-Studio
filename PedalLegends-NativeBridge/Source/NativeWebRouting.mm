@@ -19,118 +19,7 @@ namespace
     }
 
     char handlerAssociationKey;
-    char viewportAssociationKey;
 
-    // AppKit and React must see the same viewport dimensions. In particular
-    // the original AU may create WKWebView at its previous preferred size
-    // before JUCE embeds and resizes the editor.
-    void synchronizeWebViewport (WKWebView* web, const juce::AudioProcessorEditor& editor)
-    {
-        if (web == nil) return;
-
-        NSMutableDictionary* state = (NSMutableDictionary*)
-            objc_getAssociatedObject (web, &viewportAssociationKey);
-        if (state == nil)
-        {
-            state = [NSMutableDictionary dictionaryWithObjectsAndKeys:
-                     @(-1), @"width", @(-1), @"height",
-                     @(0), @"settling", nil];
-            objc_setAssociatedObject (web, &viewportAssociationKey, state,
-                                      OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-        }
-
-        const int wantedW = editor.getWidth(), wantedH = editor.getHeight();
-        if (wantedW < 320 || wantedH < 240) return;
-        const int previousW = [state[@"width"] intValue];
-        const int previousH = [state[@"height"] intValue];
-        const bool changed = previousW != wantedW || previousH != wantedH;
-        int settling = [state[@"settling"] intValue];
-        if (changed)
-        {
-            settling = 0;
-            state[@"width"] = @(wantedW);
-            state[@"height"] = @(wantedH);
-        }
-
-        // Correct only the actual embedded WebKit child when its immediate
-        // native parent already matches the reserved JUCE editor rectangle.
-        // Never touch the surrounding DAW window, AU view controller, zoom,
-        // original React canvas, or any preset/DSP parameter.
-        NSView* parent = [web superview];
-        if (parent != nil)
-        {
-            const NSRect parentBounds = [parent bounds];
-            const NSRect webFrame = [web frame];
-            const bool parentMatches = std::abs (NSWidth(parentBounds) - wantedW) <= 4.0
-                                    && std::abs (NSHeight(parentBounds) - wantedH) <= 4.0;
-            if (parentMatches)
-            {
-                [web setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
-                if (std::abs(NSWidth(webFrame) - NSWidth(parentBounds)) > 2.0
-                 || std::abs(NSHeight(webFrame) - NSHeight(parentBounds)) > 2.0)
-                {
-                    [web setFrame:parentBounds];
-                    [web setNeedsLayout:YES];
-                    settling = 0;
-                }
-            }
-
-            // One lightweight trace per editor/size change, so if a specific
-            // AU uses a nonstandard parent hierarchy, we can diagnose it from
-            // the user's Mac without guessing another transform percentage.
-            if (changed)
-            {
-                const juce::String details =
-                    juce::Time::getCurrentTime().toISO8601 (true)
-                    + " JUCE=" + juce::String (wantedW) + "x" + juce::String (wantedH)
-                    + " parent=" + juce::String (NSWidth(parentBounds), 1) + "x"
-                    + juce::String (NSHeight(parentBounds), 1)
-                    + " WK=" + juce::String (NSWidth(webFrame), 1) + "x"
-                    + juce::String (NSHeight(webFrame), 1)
-                    + " matched=" + (parentMatches ? "yes" : "no") + "\\n";
-                const auto log = juce::File::getSpecialLocation (juce::File::userHomeDirectory)
-                                      .getChildFile ("Library/Logs/PedalLegends-Viewport.log");
-                log.appendText (details);
-            }
-        }
-
-        // The original app exposes PMSETGUI, the same native window-size
-        // command used by its inner drag handle. Ask it to adopt JUCE's
-        // already-reserved board size ONCE when the pedalboard first appears.
-        // Do not resize the outer DAW/JUCE editor or add another CSS zoom.
-        // This explicitly reproduces the user's successful manual resize,
-        // but at initial opening instead of requiring a mouse drag.
-        if (changed || settling < 16)
-        {
-            juce::String init (
-                "(function(){"
-                "if(window.__lmsInitialBoardFill || "
-                "window._iplugEnv!=='webview' || "
-                "typeof window.IPlugSendMsg!=='function' || "
-                "!document.querySelector('#main .touring-board'))return;"
-                "window.__lmsInitialBoardFill=true;"
-                "window.IPlugSendMsg({msg:'PMSETGUI',width:");
-            init << wantedW << ",height:" << wantedH
-                 << "});"
-                    "window.dispatchEvent(new Event('resize'));"
-                    "setTimeout(function(){window.dispatchEvent(new Event('resize'));},150);"
-                    "})();";
-            NSString* command = [NSString stringWithUTF8String:init.toRawUTF8()];
-            [web evaluateJavaScript:command completionHandler:nil];
-        }
-
-        // React's original CR component calculates scale from the viewport
-        // on 'resize'. After embedding, that event can be missed, even when
-        // JUCE has already called setBounds. Repeat during first two seconds,
-        // then stop; no permanent loop and no additional CSS transforms.
-        if (changed || settling < 16)
-        {
-            [web evaluateJavaScript:
-                @"window.dispatchEvent(new Event('resize'));"
-                completionHandler:nil];
-            state[@"settling"] = @(settling + 1);
-        }
-    }
 }
 
 @interface LMSPresetRoutingHandler : NSObject <WKScriptMessageHandler>
@@ -211,7 +100,6 @@ void lmsPushWebRouting (juce::AudioProcessorEditor& originalEditor,
     WKWebView* web = findWebView ((NSView*) native);
     if (web == nil) return;
 
-    synchronizeWebViewport (web, originalEditor);
 
     // Install once per original WebView. The handler holds only a weak JUCE
     // processor pointer; the host editor can close without a dangling object.
