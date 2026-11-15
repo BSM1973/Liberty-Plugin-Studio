@@ -27,10 +27,9 @@ function test(width, height) {
   assert.equal(typeof window.__lmsFitViewport,"function");
   assert.equal(styles.width,"1440px");
   assert.equal(styles.height,"960px");
-  const scale=Number(root.style.transform.match(/scale\\(([0-9.]+)\\)/)[1]);
-  const parts=root.style.transform.match(/translate\\(([0-9.]+)px,([0-9.]+)px\\)/);
-  assert.ok(parts);
-  const x=Number(parts[1]),y=Number(parts[2]);
+  const scale=Number(root.style.transform.split("scale(")[1].split(")")[0]);
+  const offset=root.style.transform.split("translate(")[1].split(")")[0].split("px,");
+  const x=Number(offset[0]),y=Number(offset[1].replace("px",""));
   assert.ok(scale>0 && scale<=1);
   assert.ok(x>=0 && y>=0);
   assert.ok(x+1440*scale <= width+0.02, "right edge clipped");
