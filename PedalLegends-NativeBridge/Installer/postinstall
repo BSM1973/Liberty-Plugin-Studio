@@ -80,6 +80,16 @@ LOG="/Library/Logs/Pedal-Legends-Installation-Systeme.log"
     mkdir -p "$BACKUP_ROOT"
     /usr/bin/ditto "$ORIGINAL" "$BACKUP_ROOT/LIBERTY_PEDAL_LEGENDS.component"
     patch_web() {
+      # Remove the broken experiments injected by previous installers.
+      # A fresh V12.2 installer previously left them in index.html, so even
+      # rolling back the native bridge did NOT undo their UI transformations.
+      # All changes take place after the complete signed AU backup above.
+      /usr/bin/perl -0pi -e 's#<script\\s+src=["\\x27]scripts/lms-canvas-fit\\.js["\\x27]\\s*></script>\\s*##g' "$WEB/index.html" || return 1
+      /bin/rm -f "$WEB/scripts/lms-canvas-fit.js" || return 1
+      if /usr/bin/grep -Fq 'lms-canvas-fit.js' "$WEB/index.html"; then
+        echo "Legacy canvas fitter still referenced; refusing incomplete cleanup"
+        return 1
+      fi
       /bin/cp "$UI_ASSETS/lms-layout-v6.js" "$WEB/scripts/lms-layout-v6.js" || return 1
       /bin/cp "$UI_ASSETS/lms-layout-v6.css" "$WEB/styles/lms-layout-v6.css" || return 1
       /bin/cp "$UI_ASSETS/lms-localization-v9.js" "$WEB/scripts/lms-localization-v9.js" || return 1
