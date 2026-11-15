@@ -99,6 +99,25 @@ void lmsPushWebRouting (juce::AudioProcessorEditor& originalEditor,
     WKWebView* web = findWebView ((NSView*) native);
     if (web == nil) return;
 
+    // WebKit's pageZoom scales HTML and pointer hit-testing together.
+    // Never apply a JUCE affine transform to WKWebView's native NSView.
+    // The source layout is approximately 1440 x 960; the JUCE editor uses a
+    // fixed 214-point routing header and the remaining space for the board.
+    // Reserve a small safety margin for the original footer.
+    if (@available(macOS 11.0, *))
+    {
+        const CGFloat visibleWidth = NSWidth ([web bounds]);
+        const CGFloat visibleHeight = NSHeight ([web bounds]);
+        if (visibleWidth > 320.0 && visibleHeight > 240.0)
+        {
+            const CGFloat zoom = std::max (0.45, std::min (1.0,
+                std::min ((visibleWidth - 18.0) / 1440.0,
+                          (visibleHeight - 18.0) / 1000.0)));
+            if (std::abs ([web pageZoom] - zoom) > 0.005)
+                [web setPageZoom:zoom];
+        }
+    }
+
     // Install once per original WebView. The handler holds only a weak JUCE
     // processor pointer; the host editor can close without a dangling object.
     if (objc_getAssociatedObject (web, &handlerAssociationKey) == nil)
