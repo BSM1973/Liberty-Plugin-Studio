@@ -22,6 +22,8 @@ private:
     juce::Label blendTitle;
     juce::ComboBox routingSelector;
     juce::Slider blendSlider;
+    std::array<juce::TextButton, 8> stageLaneButtons;
+    juce::Label splitDiagram;
     bool updatingChildLayout = false;
     int pendingWidth = 0;
     int pendingHeight = 0;
