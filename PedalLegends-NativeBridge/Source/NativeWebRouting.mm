@@ -114,8 +114,12 @@ void lmsPushWebRouting (juce::AudioProcessorEditor& originalEditor,
 #endif
     }
 
-    // Data-only payload from the real native host routing parameters.
-    juce::String command ("window.__lmsV121_updateRouting && window.__lmsV121_updateRouting({mode:");
+    // The host JUCE editor is the only authority for dimensions.
+    // No WKWebView pageZoom, no guessed devicePixelRatio and no AU preferred
+    // size feedback. The original React canvas is 1440x960 logical points.
+    juce::String command ("window.__lmsFitViewport && window.__lmsFitViewport(");
+    command << originalEditor.getWidth() << "," << originalEditor.getHeight() << ");";
+    command << "window.__lmsV121_updateRouting && window.__lmsV121_updateRouting({mode:";
     command << mode << ",ready:" << (ready ? "true" : "false") << ",lanes:[";
     for (size_t i = 0; i < lanes.size(); ++i)
     {
