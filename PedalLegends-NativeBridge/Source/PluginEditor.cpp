@@ -10,7 +10,7 @@ namespace
     const juce::Colour copper (0xffb78e55);
     const juce::Colour ivory (0xfff3ead5);
     const juce::Colour border (0xffa78e67);
-    constexpr int routingHeaderHeight = 214;
+    constexpr int routingHeaderHeight = 185;
 }
 
 PedalLegendsBridgeEditor::PedalLegendsBridgeEditor (PedalLegendsBridgeProcessor& p)
@@ -93,7 +93,7 @@ PedalLegendsBridgeEditor::PedalLegendsBridgeEditor (PedalLegendsBridgeProcessor&
     // The original pedalboard is 1440x960. The premium header is added
     // above it, not drawn over its controls.
     setResizable (false, false);
-    setSize (1520, 1220);
+    setSize (1060, 845);
     syncRoutingControls();
     startTimerHz (8);
 }
@@ -188,9 +188,9 @@ void PedalLegendsBridgeEditor::timerCallback()
                 originalEditor->addComponentListener (this);
                 statusLabel.setVisible (false);
                 routingDiagram.toFront (false);
-                const auto pref = originalEditor->getBounds();
-                setSize (juce::jlimit (1000, 1900, juce::jmax (1520, pref.getWidth())),
-                         juce::jlimit (760, 1320, juce::jmax (1220, pref.getHeight() + routingHeaderHeight)));
+                // Keep the original React/WKWebView responsive layout.
+                // The AU's preferred size must not enlarge this host window.
+                // No pageZoom, affine transform or scrolling viewport.
                 resized();
             }
         }
@@ -228,26 +228,15 @@ void PedalLegendsBridgeEditor::paint (juce::Graphics& g)
     g.drawHorizontalLine (110, 25.0f, (float) getWidth() - 25.0f);
 }
 
-void PedalLegendsBridgeEditor::componentMovedOrResized (juce::Component& child,
-                                                       bool, bool wasResized)
+void PedalLegendsBridgeEditor::componentMovedOrResized (juce::Component&, bool, bool)
 {
-    if (! wasResized || &child != originalEditor.get() || updatingChildLayout)
-        return;
-    if (child.getWidth() < 320 || child.getHeight() < 240)
-        return;
-    pendingWidth = child.getWidth();
-    pendingHeight = child.getHeight() + routingHeaderHeight;
-    triggerAsyncUpdate();
+    // Ignore the AU's preferred dimensions: the original web page already
+    // performs its own responsive layout inside the actual available bounds.
 }
 
 void PedalLegendsBridgeEditor::handleAsyncUpdate()
 {
-    if (originalEditor == nullptr || pendingWidth <= 0 || pendingHeight <= 0)
-        return;
-    const int targetW = juce::jlimit (700, 2400, pendingWidth);
-    const int targetH = juce::jlimit (480, 1800, pendingHeight);
-    if (targetW != getWidth() || targetH != getHeight())
-        setSize (targetW, targetH);
+    // Intentionally no automatic host expansion.
 }
 
 void PedalLegendsBridgeEditor::resized()
@@ -272,13 +261,14 @@ void PedalLegendsBridgeEditor::resized()
     const int startX = roomy ? 529 : 0;
     for (int i = 0; i < 8; ++i)
         stageLaneButtons[(size_t) i].setBounds (
-            roomy ? juce::Rectangle<int> (startX + 58 * i, 83, 54, 26) : juce::Rectangle<int>());
-    routingStatus.setBounds (roomy ? 1020 : 610, 83,
-                             roomy ? getWidth() - 1050 : getWidth() - 640, 25);
+            roomy ? juce::Rectangle<int> (startX + 58 * i, 76, 54, 24) : juce::Rectangle<int>());
+    routingStatus.setBounds (getWidth() - 158, 12, 145, 22);
 
     statusLabel.setBounds (board.reduced (25));
     if (originalEditor != nullptr)
         originalEditor->setBounds (board);
-    routingDiagram.setBounds (20, 119, juce::jmax (0, getWidth() - 40), 85);
+    // Minimum draw height is 67px after the diagram's 1px inset on each edge.
+    // Keep this strictly separate from the A/B assignment buttons above.
+    routingDiagram.setBounds (20, 104, juce::jmax (0, getWidth() - 40), 78);
     routingDiagram.toFront (false);
 }
