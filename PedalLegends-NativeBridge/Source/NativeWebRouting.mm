@@ -99,6 +99,57 @@ void lmsPushWebRouting (juce::AudioProcessorEditor& originalEditor,
     WKWebView* web = findWebView ((NSView*) native);
     if (web == nil) return;
 
+    // Reset inherited WebKit magnification. The original editor may already
+    // implement its own responsive scaling; do NOT stack pageZoom on it.
+    if (@available(macOS 11.0, *))
+        if (std::abs ([web pageZoom] - 1.0) > 0.002)
+            [web setPageZoom:1.0];
+
+    // Fit the *measured rendered page*, not guessed nominal dimensions.
+    // CSS zoom preserves WebKit hit testing (unlike native affine transforms).
+    // We measure the actual root bounding box after the original React layout
+    // has run; if it already fits, nothing is changed.
+    static NSString* const fitScript = @R"JS(
+    (function () {
+      if (window.__lmsNativeFitInstalled) return;
+      window.__lmsNativeFitInstalled = true;
+      let pending = false;
+      let passes = 0;
+      function fit() {
+        pending = false;
+        const root = document.querySelector('#main .liberty-root') ||
+                     document.querySelector('#main');
+        if (!root || window.innerWidth < 320 || window.innerHeight < 300) return;
+        const rect = root.getBoundingClientRect();
+        if (rect.width < 150 || rect.height < 150) return;
+        const body = document.body;
+        const current = Number(body.dataset.lmsFitZoom || 1);
+        const widthLimit = Math.max(320, window.innerWidth - 12);
+        const heightLimit = Math.max(300, window.innerHeight - 12);
+        const ratio = Math.min(widthLimit / rect.width,
+                               heightLimit / rect.height);
+        const next = Math.max(0.55, Math.min(2.2, current * ratio));
+        if (Math.abs(next - current) / current < 0.035) return;
+        body.style.zoom = String(next);
+        body.dataset.lmsFitZoom = String(next);
+        // React may reflow after WebKit zoom. Check once more, with a limit.
+        if (++passes < 3) requestAnimationFrame(queueFit);
+      }
+      function queueFit() {
+        if (pending) return;
+        pending = true;
+        requestAnimationFrame(fit);
+      }
+      window.addEventListener('resize', () => { passes = 0; queueFit(); });
+      if (document.readyState === 'loading')
+        document.addEventListener('DOMContentLoaded', queueFit, {once: true});
+      else queueFit();
+      setTimeout(() => { passes = 0; queueFit(); }, 350);
+      setTimeout(() => { passes = 0; queueFit(); }, 1100);
+    })();
+    )JS";
+    [web evaluateJavaScript:fitScript completionHandler:nil];
+
     // Install once per original WebView. The handler holds only a weak JUCE
     // processor pointer; the host editor can close without a dangling object.
     if (objc_getAssociatedObject (web, &handlerAssociationKey) == nil)
