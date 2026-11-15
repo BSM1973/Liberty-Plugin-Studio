@@ -1,86 +1,66 @@
-/* Pedal Legends — measured native canvas fit (no pageZoom, no body zoom).
- * The original Audio Unit React UI is exactly 1440x960 in webview mode.
- * Keep a single 2D transform on #plugin-body; JUCE owns the outer size.
- * The native bridge passes the real available editor bounds, which avoids
- * relying on WKWebView's possibly stale window.innerWidth/innerHeight.
+/* Pedal Legends native fit — preserve the 1440x960 original React canvas.
+ * PluginMaker wraps that canvas in its own scaled viewport and decorative
+ * window title. Hide only the redundant host chrome and override the scaler
+ * with a stylesheet !important, which survives React inline style updates.
+ * No transform is ever applied to #plugin-body itself.
  */
 (() => {
   "use strict";
-  const CANVAS_WIDTH = 1440;
-  const CANVAS_HEIGHT = 960;
-  let reservedWidth = 0;
-  let reservedHeight = 0;
-  let scheduled = false;
+  const baseWidth = 1440, baseHeight = 960;
+  let width = window.innerWidth, height = window.innerHeight;
+  const style = document.createElement("style");
+  style.textContent = `
+.lms-native-topbar,.lms-native-fake-title{display:none!important}
+.lms-native-layout{padding:0!important;display:flex!important;align-items:center!important;justify-content:center!important}
+.lms-native-frame{width:var(--lms-frame-w)!important;height:var(--lms-frame-h)!important;flex-shrink:0!important;margin:0!important}
+.lms-native-viewport{width:var(--lms-frame-w)!important;height:var(--lms-frame-h)!important;border-radius:0!important;overflow:hidden!important}
+.lms-native-scaler{transform:scale(var(--lms-fit-scale))!important;transform-origin:top left!important;width:1440px!important;height:960px!important}
+`;
+  document.head.appendChild(style);
 
   function fit() {
-    scheduled = false;
     const root = document.getElementById("plugin-body");
     if (!root) return;
-    const viewportWidth = reservedWidth || window.innerWidth;
-    const viewportHeight = reservedHeight || window.innerHeight;
-    if (viewportWidth < 300 || viewportHeight < 300) return;
+    const scaler = root.parentElement;
+    const viewport = scaler?.parentElement;
+    const frame = viewport?.parentElement;
+    const layout = frame?.parentElement;
+    const shell = layout?.parentElement;
+    if (!scaler || !viewport || !frame || !layout || !shell) return;
 
-    const scale = Math.min(viewportWidth / CANVAS_WIDTH,
-                           viewportHeight / CANVAS_HEIGHT);
-    // The root owns 1440x960 logical coordinates. This one transform scales
-    // layout and pointer targets together. Never set web.pageZoom.
-    const scaledWidth = CANVAS_WIDTH * scale;
-    const scaledHeight = CANVAS_HEIGHT * scale;
-    const dx = Math.max(0, (viewportWidth - scaledWidth) * .5);
-    const dy = Math.max(0, (viewportHeight - scaledHeight) * .5);
+    const ratio = Math.min(width / baseWidth, height / baseHeight);
+    const frameWidth = baseWidth * ratio, frameHeight = baseHeight * ratio;
+    const title = frame.firstElementChild, bar = shell.firstElementChild;
+    if (title && title !== viewport) title.classList.add("lms-native-fake-title");
+    if (bar && bar !== layout) bar.classList.add("lms-native-topbar");
+    scaler.classList.add("lms-native-scaler");
+    viewport.classList.add("lms-native-viewport");
+    frame.classList.add("lms-native-frame");
+    layout.classList.add("lms-native-layout");
 
-    root.style.setProperty("width", CANVAS_WIDTH + "px", "important");
-    root.style.setProperty("height", CANVAS_HEIGHT + "px", "important");
-    root.style.setProperty("position", "absolute", "important");
-    root.style.setProperty("top", "0px", "important");
-    root.style.setProperty("left", "0px", "important");
-    root.style.setProperty("margin", "0px", "important");
-    root.style.setProperty("transform-origin", "0 0", "important");
-    root.style.setProperty("transform",
-      "translate(" + dx.toFixed(2) + "px," + dy.toFixed(2) + "px) scale(" + scale.toFixed(6) + ")",
-      "important");
+    document.documentElement.style.setProperty("--lms-fit-scale", ratio.toFixed(8));
+    document.documentElement.style.setProperty("--lms-frame-w", frameWidth + "px");
+    document.documentElement.style.setProperty("--lms-frame-h", frameHeight + "px");
+  }
 
-    document.documentElement.style.overflow = "hidden";
-    document.body.style.overflow = "hidden";
-    document.body.style.margin = "0";
-    document.body.style.zoom = "1";
-    const host = document.getElementById("main");
-    if (host) {
-      host.style.width = viewportWidth + "px";
-      host.style.height = viewportHeight + "px";
-      host.style.overflow = "hidden";
-      host.style.position = "relative";
+  window.__lmsFitViewport = (w, h) => {
+    if (Number.isFinite(w) && Number.isFinite(h) && w >= 300 && h >= 300) {
+      width = w;
+      height = h;
     }
-    // An obsolete PluginMaker HTML resizing affordance must not act as
-    // the resizing control for this hosted plugin.
-    document.querySelectorAll("[data-pm-window-layer]").forEach(el => {
-      el.style.display = "none";
-    });
-    document.documentElement.dataset.lmsCanvasFit = scale.toFixed(4);
-  }
-
-  function schedule() {
-    if (scheduled) return;
-    scheduled = true;
-    requestAnimationFrame(fit);
-  }
-
-  window.__lmsFitViewport = function(width, height) {
-    if (!Number.isFinite(width) || !Number.isFinite(height) ||
-        width < 300 || height < 300) return;
-    if (reservedWidth === width && reservedHeight === height &&
-        document.getElementById("plugin-body")?.style.transform) return;
-    reservedWidth = width;
-    reservedHeight = height;
-    schedule();
+    fit();
   };
-
-  window.addEventListener("resize", schedule);
-  new MutationObserver(() => {
-    if (document.getElementById("plugin-body") && !document.documentElement.dataset.lmsCanvasFit)
-      schedule();
-  }).observe(document.getElementById("main") || document.body, {childList:true});
+  window.addEventListener("resize", () => {
+    width = window.innerWidth;
+    height = window.innerHeight;
+    fit();
+  });
+  const observer = new MutationObserver(() => {
+    if (document.getElementById("plugin-body")) fit();
+  });
+  observer.observe(document.getElementById("main") || document.body,
+                   {childList: true, subtree: true});
   if (document.readyState === "loading")
-    document.addEventListener("DOMContentLoaded", schedule, {once:true});
-  else schedule();
+    document.addEventListener("DOMContentLoaded", fit, {once: true});
+  else fit();
 })();
