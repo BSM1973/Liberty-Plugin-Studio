@@ -280,6 +280,154 @@ void PedalLegendsBridgeProcessor::finishCreation (
         ensureSplitEngines();
 }
 
+
+void PedalLegendsBridgeProcessor::timerCallback()
+{
+    // All AU parameter mirroring is on the message thread, never in processBlock.
+    if (routingMode->getIndex() != 2)
+        return;
+    if (! twoBranchReady.load())
+        ensureSplitEngines();
+    else
+        syncSplitParameters();
+}
+
+void PedalLegendsBridgeProcessor::ensureSplitEngines()
+{
+#if JUCE_WINDOWS
+    // Windows does not have the original PluginMaker AU DSP.
+    return;
+#else
+    if (splitCreationInProgress || ! originalDescriptionValid || engine == nullptr
+        || twoBranchReady.load())
+        return;
+
+    splitCreationInProgress = true;
+    auto weak = juce::WeakReference<PedalLegendsBridgeProcessor> (this);
+    formatManager.createPluginInstanceAsync (
+        originalDescription, currentSampleRate, currentBlockSize,
+        [weak] (std::unique_ptr<juce::AudioPluginInstance> instance, const juce::String& error) mutable
+        {
+            if (auto* self = weak.get())
+                self->finishSplitCreation (0, std::move (instance), error);
+        });
+#endif
+}
+
+void PedalLegendsBridgeProcessor::finishSplitCreation (
+    int lane, std::unique_ptr<juce::AudioPluginInstance> instance, const juce::String& error)
+{
+    if (instance == nullptr)
+    {
+        splitCreationInProgress = false;
+        twoBranchReady.store (false);
+        refreshStatus (juce::String::fromUTF8 (u8"SPLIT indisponible : création de branche impossible. ") + error);
+        return;
+    }
+
+    // The two copies are initialized from the original editor AU. The original
+    // engine remains untouched and still owns all editing/preset interactions.
+    instance->setBusesLayout (getBusesLayout());
+    if (prepared)
+        instance->prepareToPlay (currentSampleRate, currentBlockSize);
+    juce::MemoryBlock state;
+    {
+        const juce::SpinLock::ScopedLockType lock (engineLock);
+        if (engine != nullptr)
+            engine->getStateInformation (state);
+    }
+    if (! state.isEmpty())
+        instance->setStateInformation (state.getData(), (int) state.getSize());
+
+    {
+        const juce::SpinLock::ScopedLockType lock (engineLock);
+        if (lane == 0) splitEngineA = std::move (instance);
+        else           splitEngineB = std::move (instance);
+    }
+    if (lane == 0)
+    {
+        auto weak = juce::WeakReference<PedalLegendsBridgeProcessor> (this);
+        formatManager.createPluginInstanceAsync (
+            originalDescription, currentSampleRate, currentBlockSize,
+            [weak] (std::unique_ptr<juce::AudioPluginInstance> second, const juce::String& fail) mutable
+            {
+                if (auto* self = weak.get())
+                    self->finishSplitCreation (1, std::move (second), fail);
+            });
+        return;
+    }
+
+    // Parameter IDs are not guessed by array position. The same original AU
+    // must expose every stage's Enabled parameter to avoid wrong routing.
+    stageEnabledParameterIndices.fill (-1);
+    {
+        const juce::SpinLock::ScopedLockType lock (engineLock);
+        if (engine == nullptr || splitEngineA == nullptr || splitEngineB == nullptr
+            || engine->getParameters().size() != splitEngineA->getParameters().size()
+            || engine->getParameters().size() != splitEngineB->getParameters().size())
+        {
+            splitCreationInProgress = false;
+            refreshStatus (juce::String::fromUTF8 (u8"SPLIT désactivé : paramètres AU incompatibles."));
+            return;
+        }
+        for (int i = 0; i < engine->getParameters().size(); ++i)
+        {
+            auto* hosted = engine->getHostedParameter (i);
+            auto id = hosted != nullptr ? hosted->getParameterID()
+                                        : engine->getParameters()[i]->getName (128);
+            id = id.toLowerCase().retainCharacters ("abcdefghijklmnopqrstuvwxyz0123456789");
+            for (int stage = 0; stage < 8; ++stage)
+                if (id.contains ("slot" + juce::String (stage + 1) + "enabled"))
+                    stageEnabledParameterIndices[(size_t) stage] = i;
+        }
+    }
+    for (int idx : stageEnabledParameterIndices)
+    {
+        if (idx < 0)
+        {
+            splitCreationInProgress = false;
+            refreshStatus (juce::String::fromUTF8 (
+                u8"SPLIT désactivé : un paramètre d'activation de pédale n'est pas exposé par l'AU."));
+            return;
+        }
+    }
+    syncSplitParameters();
+    twoBranchReady.store (true);
+    splitCreationInProgress = false;
+    refreshStatus (juce::String::fromUTF8 (u8"SPLIT A/B disponible : deux chaînes de pédales, réunion à la sortie."));
+}
+
+void PedalLegendsBridgeProcessor::syncSplitParameters()
+{
+    const juce::SpinLock::ScopedLockType lock (engineLock);
+    if (engine == nullptr || splitEngineA == nullptr || splitEngineB == nullptr)
+        return;
+    const auto& master = engine->getParameters();
+    const auto& a = splitEngineA->getParameters();
+    const auto& b = splitEngineB->getParameters();
+    if (a.size() != master.size() || b.size() != master.size()) return;
+
+    for (int i = 0; i < master.size(); ++i)
+    {
+        const float original = master[i]->getValue();
+        float left = original;
+        float right = original;
+        for (int stage = 0; stage < 8; ++stage)
+        {
+            if (stageEnabledParameterIndices[(size_t) stage] == i)
+            {
+                if (stageLanes[(size_t) stage]->getIndex() == 0) right = 0.0f;
+                else                                            left = 0.0f;
+                break;
+            }
+        }
+        if (std::abs (a[i]->getValue() - left) > 0.00001f)
+            a[i]->setValue (left);
+        if (std::abs (b[i]->getValue() - right) > 0.00001f)
+            b[i]->setValue (right);
+    }
+}
+
 void PedalLegendsBridgeProcessor::restoreSnapshot (juce::AudioPluginInstance& destination)
 {
     if (! savedEngineState.isEmpty())
