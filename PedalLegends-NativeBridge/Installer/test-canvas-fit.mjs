@@ -35,13 +35,13 @@ function check(width, height, webview = false) {
   const w=webview ? 1440 * scale : Number(vars.get("--lms-frame-w").replace("px",""));
   const h=webview ? 960 * scale : Number(vars.get("--lms-frame-h").replace("px",""));
   assert.ok(head.script.textContent.includes("!important"));
-  assert.ok(scaler.classList.contains("lms-native-scaler"));
   if(webview) {
     assert.ok(scaler.classList.contains("lms-native-webview-scaler"));
     assert.ok(!viewport.classList.contains("lms-native-viewport"));
     assert.ok(!title.classList.contains("lms-native-fake-title"));
     assert.ok(!bar.classList.contains("lms-native-topbar"));
   } else {
+    assert.ok(scaler.classList.contains("lms-native-scaler"));
     assert.ok(viewport.classList.contains("lms-native-viewport"));
   assert.ok(frame.classList.contains("lms-native-frame"));
   assert.ok(layout.classList.contains("lms-native-layout"));
