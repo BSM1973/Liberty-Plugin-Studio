@@ -1,0 +1,75 @@
+/* Pedal Legends V12.2 — two clear factory banks, original palette. */
+#main .preset-browser-panel .lms-v122-tabs {
+  display: flex !important;
+  gap: 11px !important;
+  padding: 12px 24px !important;
+  background: linear-gradient(180deg,#e9e0c8,#d9cba9) !important;
+  border-bottom: 1px solid #9f8c69 !important;
+  align-items: stretch !important;
+}
+#main .preset-browser-panel .lms-v122-tab {
+  display: flex !important;
+  flex: 1 1 0 !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 3px !important;
+  min-height: 48px !important;
+  padding: 6px 12px !important;
+  border: 1px solid #907c5b !important;
+  border-radius: 9px !important;
+  background: #e4d7b9 !important;
+  color: #2c4836 !important;
+  font: 700 12px Arial,sans-serif !important;
+  cursor: pointer !important;
+  letter-spacing: .35px !important;
+}
+#main .preset-browser-panel .lms-v122-tab.active {
+  background: linear-gradient(#3b6147,#263e30) !important;
+  color: #f7ecd4 !important;
+  border-color: #263e30 !important;
+  box-shadow: inset 0 1px 0 #ffffff30,0 2px 5px #56472b33 !important;
+}
+#main .preset-browser-panel .lms-v122-tab small {
+  font: 400 10px Arial,sans-serif !important;
+  opacity: .78 !important;
+  letter-spacing: 0 !important;
+}
+#main .preset-browser-panel[data-lms-preset-bank="series"] .preset-result[data-lms-preset-bank="parallel"],
+#main .preset-browser-panel[data-lms-preset-bank="parallel"] .preset-result[data-lms-preset-bank="series"] {
+  display: none !important;
+}
+#main .preset-browser-panel[data-lms-preset-bank="parallel"] .preset-categories {
+  display: none !important;
+}
+#main .preset-browser-panel[data-lms-preset-bank="parallel"] .preset-browser-main {
+  width: 100% !important;
+}
+#main .preset-browser-panel .preset-browser-content {
+  min-height: 0 !important;
+  height: 551px !important;
+}
+#main .preset-browser-panel .preset-results {
+  height: 425px !important;
+  grid-auto-rows: minmax(110px,auto);
+}
+#main .preset-browser-panel .preset-results-heading > span:first-child b {
+  display: none !important; /* React counter includes both hidden banks */
+}
+#main .preset-browser-panel .lms-v122-count {
+  font: 700 10px Arial,sans-serif !important;
+  color: #2f5740 !important;
+  margin-left: auto !important;
+  white-space: nowrap !important;
+}
+#main .preset-browser-panel .lms-v122-warning {
+  font: 700 11px Arial,sans-serif !important;
+  color: #973a2b !important;
+}
+#main .preset-browser-panel .preset-result[data-lms-preset-bank="parallel"] {
+  border-color: #c2a675 !important;
+}
+#main .preset-browser-panel .preset-result[data-lms-preset-bank="parallel"] .preset-result-category {
+  color: #865f36 !important;
+  font-weight: 700 !important;
+}
