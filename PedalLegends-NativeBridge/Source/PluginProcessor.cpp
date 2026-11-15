@@ -361,29 +361,32 @@ void PedalLegendsBridgeProcessor::finishSplitCreation (
     // Parameter IDs are not guessed by array position. The same original AU
     // must expose every stage's Enabled parameter to avoid wrong routing.
     stageEnabledParameterIndices.fill (-1);
+    bool parametersIncompatible = false;
     {
         const juce::SpinLock::ScopedLockType lock (engineLock);
-        if (engine == nullptr || splitEngineA == nullptr || splitEngineB == nullptr
+        parametersIncompatible = engine == nullptr || splitEngineA == nullptr || splitEngineB == nullptr
             || engine->getParameters().size() != splitEngineA->getParameters().size()
-            || engine->getParameters().size() != splitEngineB->getParameters().size())
+            || engine->getParameters().size() != splitEngineB->getParameters().size();
+        if (! parametersIncompatible)
         {
-            splitCreationInProgress = false;
-            splitUnavailable = true;
-            refreshStatus (juce::String::fromUTF8 (u8"SPLIT désactivé : paramètres AU incompatibles."));
-            return;
+            for (int i = 0; i < engine->getParameters().size(); ++i)
+            {
+                auto* hosted = engine->getHostedParameter (i);
+                auto id = (hosted != nullptr ? hosted->getParameterID() : juce::String()) +
+                          " " + engine->getParameters()[i]->getName (128);
+                id = id.toLowerCase().retainCharacters ("abcdefghijklmnopqrstuvwxyz0123456789");
+                for (int stage = 0; stage < 8; ++stage)
+                    if (id.contains ("slot" + juce::String (stage + 1) + "enabled"))
+                        stageEnabledParameterIndices[(size_t) stage] = i;
+            }
         }
-        for (int i = 0; i < engine->getParameters().size(); ++i)
-        {
-            auto* hosted = engine->getHostedParameter (i);
-            // AU parameter IDs can be opaque numeric codes; include the
-            // human-readable name as well when resolving the eight bypasses.
-            auto id = (hosted != nullptr ? hosted->getParameterID() : juce::String()) +
-                      " " + engine->getParameters()[i]->getName (128);
-            id = id.toLowerCase().retainCharacters ("abcdefghijklmnopqrstuvwxyz0123456789");
-            for (int stage = 0; stage < 8; ++stage)
-                if (id.contains ("slot" + juce::String (stage + 1) + "enabled"))
-                    stageEnabledParameterIndices[(size_t) stage] = i;
-        }
+    }
+    if (parametersIncompatible)
+    {
+        splitCreationInProgress = false;
+        splitUnavailable = true;
+        refreshStatus (juce::String::fromUTF8 (u8"SPLIT désactivé : paramètres AU incompatibles."));
+        return;
     }
     for (int idx : stageEnabledParameterIndices)
     {
@@ -414,6 +417,10 @@ void PedalLegendsBridgeProcessor::syncSplitParameters()
 
     for (int i = 0; i < master.size(); ++i)
     {
+        // Output metering parameters are read-only diagnostics, never controls.
+        const auto name = master[i]->getName (128).toLowerCase();
+        if (name.contains ("peak") || name.contains ("meter"))
+            continue;
         const float original = master[i]->getValue();
         float left = original;
         float right = original;
