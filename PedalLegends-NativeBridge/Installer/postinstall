@@ -45,6 +45,10 @@ LOG="/Library/Logs/Pedal-Legends-Installation-Systeme.log"
   test -f "$UI_ASSETS/lms-preset-descriptions-v9.js"
   test -f "$UI_ASSETS/lms-editor-v11.js"
   test -f "$UI_ASSETS/lms-editor-v11.css"
+  test -f "$UI_ASSETS/lms-routing-v121.js"
+  test -f "$UI_ASSETS/lms-routing-v121.css"
+  test -f "$UI_ASSETS/lms-history-v121.js"
+  test -f "$UI_ASSETS/lms-history-v121.css"
   ORIGINAL_SYSTEM="/Library/Audio/Plug-Ins/Components/LIBERTY_PEDAL_LEGENDS.component"
   ORIGINAL_USER=""
   if [[ -n "${USER_HOME:-}" ]]; then
@@ -80,6 +84,10 @@ LOG="/Library/Logs/Pedal-Legends-Installation-Systeme.log"
       /bin/cp "$UI_ASSETS/lms-preset-descriptions-v9.js" "$WEB/scripts/lms-preset-descriptions-v9.js" || return 1
       /bin/cp "$UI_ASSETS/lms-editor-v11.js" "$WEB/scripts/lms-editor-v11.js" || return 1
       /bin/cp "$UI_ASSETS/lms-editor-v11.css" "$WEB/styles/lms-editor-v11.css" || return 1
+      /bin/cp "$UI_ASSETS/lms-routing-v121.js" "$WEB/scripts/lms-routing-v121.js" || return 1
+      /bin/cp "$UI_ASSETS/lms-routing-v121.css" "$WEB/styles/lms-routing-v121.css" || return 1
+      /bin/cp "$UI_ASSETS/lms-history-v121.js" "$WEB/scripts/lms-history-v121.js" || return 1
+      /bin/cp "$UI_ASSETS/lms-history-v121.css" "$WEB/styles/lms-history-v121.css" || return 1
       if ! /usr/bin/grep -Fq 'lms-layout-v6.css' "$WEB/index.html"; then
         /usr/bin/perl -0pi -e 's#</head>#<link href="styles/lms-layout-v6.css" rel="stylesheet" type="text/css" />\n</head>#' "$WEB/index.html" || return 1
       fi
@@ -108,6 +116,17 @@ LOG="/Library/Logs/Pedal-Legends-Installation-Systeme.log"
       fi
       /usr/bin/grep -Fq 'lms-editor-v11.css' "$WEB/index.html" || return 1
       /usr/bin/grep -Fq 'lms-editor-v11.js' "$WEB/index.html" || return 1
+      # Remove stale V12 routing scripts if an older beta left them behind.
+      for PATCH in lms-routing-v121 lms-history-v121; do
+        if ! /usr/bin/grep -Fq "$PATCH.css" "$WEB/index.html"; then
+          /usr/bin/perl -0pi -e 's#</head>#<link href="styles/'"$PATCH"'.css" rel="stylesheet" type="text/css" />\n</head>#' "$WEB/index.html" || return 1
+        fi
+        if ! /usr/bin/grep -Fq "$PATCH.js" "$WEB/index.html"; then
+          /usr/bin/perl -0pi -e 's#</body>#<script src="scripts/'"$PATCH"'.js"></script>\n</body>#' "$WEB/index.html" || return 1
+        fi
+        /usr/bin/grep -Fq "$PATCH.css" "$WEB/index.html" || return 1
+        /usr/bin/grep -Fq "$PATCH.js" "$WEB/index.html" || return 1
+      done
       /usr/bin/codesign --force --deep --sign - "$ORIGINAL" || return 1
       /usr/bin/codesign --verify --deep --strict "$ORIGINAL" || return 1
       return 0
