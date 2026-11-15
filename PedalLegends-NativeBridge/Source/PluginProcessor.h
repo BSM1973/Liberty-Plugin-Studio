@@ -42,6 +42,7 @@ public:
     juce::AudioParameterFloat& getParallelBlend() const noexcept { return *parallelBlend; }
     juce::AudioParameterChoice& getStageLane (int index) const noexcept { return *stageLanes[(size_t) juce::jlimit (0, 7, index)]; }
     bool isTwoBranchReady() const noexcept { return twoBranchReady.load(); }
+    bool isSplitUnavailable() const noexcept { return splitUnavailable; }
     void ensureSplitEngines();
 
 private:
