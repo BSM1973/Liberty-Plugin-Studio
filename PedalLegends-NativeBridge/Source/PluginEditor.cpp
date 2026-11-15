@@ -1,4 +1,7 @@
 #include "PluginEditor.h"
+#if JUCE_MAC
+#include "NativeWebRouting.h"
+#endif
 
 namespace
 {
@@ -147,7 +150,9 @@ void PedalLegendsBridgeEditor::syncRoutingControls()
                                juce::dontSendNotification);
         routingStatus.setColour (juce::Label::textColourId,
                                  unavailable ? juce::Colour (0xffa23435) : ink);
-        splitGraphic.setRouting (true, ready, lanes);
+        // The original WKWebView is a native child surface. JUCE overlay
+        // graphics may be hidden underneath it; use the actual SVG instead.
+        splitGraphic.setRouting (false, false, lanes);
     }
     else
     {
@@ -157,6 +162,10 @@ void PedalLegendsBridgeEditor::syncRoutingControls()
         routingStatus.setColour (juce::Label::textColourId, ink);
         splitGraphic.setRouting (false, false, lanes);
     }
+#if JUCE_MAC
+    if (originalEditor != nullptr)
+        lmsPushWebRouting (*originalEditor, mode, processor.isTwoBranchReady(), lanes);
+#endif
 }
 
 void PedalLegendsBridgeEditor::timerCallback()
