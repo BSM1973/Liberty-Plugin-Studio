@@ -166,7 +166,7 @@ void PedalLegendsBridgeEditor::syncRoutingControls()
     }
 #if JUCE_MAC
     if (originalEditor != nullptr)
-        lmsPushWebRouting (*originalEditor, mode, processor.isTwoBranchReady(), lanes);
+        lmsPushWebRouting (*originalEditor, processor, mode, processor.isTwoBranchReady(), lanes);
 #endif
 }
 
