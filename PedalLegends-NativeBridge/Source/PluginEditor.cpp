@@ -10,7 +10,7 @@ namespace
     const juce::Colour copper (0xffb78e55);
     const juce::Colour ivory (0xfff3ead5);
     const juce::Colour border (0xffa78e67);
-    constexpr int routingHeaderHeight = 214;
+    constexpr int routingHeaderHeight = 190;
 }
 
 PedalLegendsBridgeEditor::PedalLegendsBridgeEditor (PedalLegendsBridgeProcessor& p)
@@ -93,7 +93,7 @@ PedalLegendsBridgeEditor::PedalLegendsBridgeEditor (PedalLegendsBridgeProcessor&
     // The original pedalboard is 1440x960. The premium header is added
     // above it, not drawn over its controls.
     setResizable (false, false);
-    setSize (1520, 1220);
+    setSize (1100, 870);
     syncRoutingControls();
     startTimerHz (8);
 }
@@ -188,9 +188,9 @@ void PedalLegendsBridgeEditor::timerCallback()
                 originalEditor->addComponentListener (this);
                 statusLabel.setVisible (false);
                 routingDiagram.toFront (false);
-                const auto pref = originalEditor->getBounds();
-                setSize (juce::jlimit (1000, 1900, juce::jmax (1520, pref.getWidth())),
-                         juce::jlimit (760, 1320, juce::jmax (1220, pref.getHeight() + routingHeaderHeight)));
+                // The original AU is displayed in a real, clipped viewport.
+                // The embedded WebKit content fits itself to this size.
+                // Never expand the outer DAW editor from the AU preferred size.
                 resized();
             }
         }
@@ -228,26 +228,15 @@ void PedalLegendsBridgeEditor::paint (juce::Graphics& g)
     g.drawHorizontalLine (110, 25.0f, (float) getWidth() - 25.0f);
 }
 
-void PedalLegendsBridgeEditor::componentMovedOrResized (juce::Component& child,
-                                                       bool, bool wasResized)
+void PedalLegendsBridgeEditor::componentMovedOrResized (juce::Component&, bool, bool)
 {
-    if (! wasResized || &child != originalEditor.get() || updatingChildLayout)
-        return;
-    if (child.getWidth() < 320 || child.getHeight() < 240)
-        return;
-    pendingWidth = child.getWidth();
-    pendingHeight = child.getHeight() + routingHeaderHeight;
-    triggerAsyncUpdate();
+    // The original AU may advertise an oversize preferred editor.
+    // Its UI is fitted by the internal WKWebView, not by expanding JUCE.
 }
 
 void PedalLegendsBridgeEditor::handleAsyncUpdate()
 {
-    if (originalEditor == nullptr || pendingWidth <= 0 || pendingHeight <= 0)
-        return;
-    const int targetW = juce::jlimit (700, 2400, pendingWidth);
-    const int targetH = juce::jlimit (480, 1800, pendingHeight);
-    if (targetW != getWidth() || targetH != getHeight())
-        setSize (targetW, targetH);
+    // No automatic host resize from the child editor.
 }
 
 void PedalLegendsBridgeEditor::resized()
@@ -279,6 +268,6 @@ void PedalLegendsBridgeEditor::resized()
     statusLabel.setBounds (board.reduced (25));
     if (originalEditor != nullptr)
         originalEditor->setBounds (board);
-    routingDiagram.setBounds (20, 119, juce::jmax (0, getWidth() - 40), 85);
+    routingDiagram.setBounds (20, 110, juce::jmax (0, getWidth() - 40), 76);
     routingDiagram.toFront (false);
 }
