@@ -19,6 +19,73 @@ namespace
     }
 
     char handlerAssociationKey;
+    char viewportAssociationKey;
+
+    // AppKit and React must see the same viewport dimensions. In particular
+    // the original AU may create WKWebView at its previous preferred size
+    // before JUCE embeds and resizes the editor.
+    void synchronizeWebViewport (WKWebView* web, const juce::AudioProcessorEditor& editor)
+    {
+        if (web == nil) return;
+
+        NSMutableDictionary* state = (NSMutableDictionary*)
+            objc_getAssociatedObject (web, &viewportAssociationKey);
+        if (state == nil)
+        {
+            state = [NSMutableDictionary dictionaryWithObjectsAndKeys:
+                     @(-1), @"width", @(-1), @"height",
+                     @(0), @"settling", nil];
+            objc_setAssociatedObject (web, &viewportAssociationKey, state,
+                                      OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        }
+
+        const int wantedW = editor.getWidth(), wantedH = editor.getHeight();
+        if (wantedW < 320 || wantedH < 240) return;
+        const int previousW = [state[@"width"] intValue];
+        const int previousH = [state[@"height"] intValue];
+        const bool changed = previousW != wantedW || previousH != wantedH;
+        int settling = [state[@"settling"] intValue];
+        if (changed)
+        {
+            settling = 0;
+            state[@"width"] = @(wantedW);
+            state[@"height"] = @(wantedH);
+        }
+
+        // Correct only the actual embedded WebKit child when its immediate
+        // native parent already matches the reserved JUCE editor rectangle.
+        // Never touch the surrounding DAW window, AU view controller, zoom,
+        // original React canvas, or any preset/DSP parameter.
+        NSView* parent = [web superview];
+        if (parent != nil)
+        {
+            const NSRect parentBounds = [parent bounds];
+            const NSRect webFrame = [web frame];
+            const bool parentMatches = std::abs (NSWidth(parentBounds) - wantedW) <= 4.0
+                                    && std::abs (NSHeight(parentBounds) - wantedH) <= 4.0;
+            if (parentMatches &&
+                (std::abs(NSWidth(webFrame) - NSWidth(parentBounds)) > 2.0
+              || std::abs(NSHeight(webFrame) - NSHeight(parentBounds)) > 2.0))
+            {
+                [web setFrame:parentBounds];
+                [web setNeedsLayout:YES];
+                settling = 0;
+            }
+        }
+
+        // React's original CR component calculates scale from the viewport
+        // on 'resize'. After embedding, that event can be missed, even when
+        // JUCE has already called setBounds. Repeat during first two seconds,
+        // then stop; no permanent loop and no additional CSS transforms.
+        if (changed || settling < 16)
+        {
+            [web evaluateJavaScript:
+                @"window.dispatchEvent(new Event('resize'));"
+                "void(document.documentElement && document.documentElement.getBoundingClientRect());"
+                completionHandler:nil];
+            state[@"settling"] = @(settling + 1);
+        }
+    }
 }
 
 @interface LMSPresetRoutingHandler : NSObject <WKScriptMessageHandler>
@@ -98,6 +165,8 @@ void lmsPushWebRouting (juce::AudioProcessorEditor& originalEditor,
 
     WKWebView* web = findWebView ((NSView*) native);
     if (web == nil) return;
+
+    synchronizeWebViewport (web, originalEditor);
 
     // Install once per original WebView. The handler holds only a weak JUCE
     // processor pointer; the host editor can close without a dangling object.
