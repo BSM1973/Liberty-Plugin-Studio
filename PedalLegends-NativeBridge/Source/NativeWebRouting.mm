@@ -81,7 +81,6 @@ namespace
         {
             [web evaluateJavaScript:
                 @"window.dispatchEvent(new Event('resize'));"
-                "void(document.documentElement && document.documentElement.getBoundingClientRect());"
                 completionHandler:nil];
             state[@"settling"] = @(settling + 1);
         }
