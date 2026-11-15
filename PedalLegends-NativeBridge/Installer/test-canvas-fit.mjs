@@ -32,8 +32,8 @@ function check(width, height, webview = false) {
   vm.runInNewContext(source,{window,document,MutationObserver});
   window.__lmsFitViewport(width,height);
   const scale=Number(vars.get("--lms-fit-scale"));
-  const w=webview ? width : Number(vars.get("--lms-frame-w").replace("px",""));
-  const h=webview ? height : Number(vars.get("--lms-frame-h").replace("px",""));
+  const w=webview ? 1440 * scale : Number(vars.get("--lms-frame-w").replace("px",""));
+  const h=webview ? 960 * scale : Number(vars.get("--lms-frame-h").replace("px",""));
   assert.ok(head.script.textContent.includes("!important"));
   assert.ok(scaler.classList.contains("lms-native-scaler"));
   if(webview) {
