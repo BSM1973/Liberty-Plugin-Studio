@@ -10,7 +10,7 @@ namespace
     const juce::Colour copper (0xffb78e55);
     const juce::Colour ivory (0xfff3ead5);
     const juce::Colour border (0xffa78e67);
-    constexpr int routingHeaderHeight = 116;
+    constexpr int routingHeaderHeight = 214;
 }
 
 PedalLegendsBridgeEditor::PedalLegendsBridgeEditor (PedalLegendsBridgeProcessor& p)
@@ -23,7 +23,7 @@ PedalLegendsBridgeEditor::PedalLegendsBridgeEditor (PedalLegendsBridgeProcessor&
 
     const juce::StringArray modes {
         juce::String::fromUTF8 (u8"SÉRIE"),
-        juce::String::fromUTF8 (u8"PARALLÈLE"),
+        "DIRECT + EFFETS",
         "SPLIT A/B"
     };
     for (int i = 0; i < 3; ++i)
@@ -86,13 +86,14 @@ PedalLegendsBridgeEditor::PedalLegendsBridgeEditor (PedalLegendsBridgeProcessor&
     routingStatus.setJustificationType (juce::Justification::centredLeft);
     addAndMakeVisible (routingStatus);
 
-    splitGraphic.setVisible (false);
-    addAndMakeVisible (splitGraphic);
+    // Routing schema remains in the visible native header, not underneath
+    // the original AU's opaque WebView.
+    addAndMakeVisible (routingDiagram);
 
     // The original pedalboard is 1440x960. The premium header is added
     // above it, not drawn over its controls.
     setResizable (false, false);
-    setSize (1520, 1100);
+    setSize (1520, 1220);
     syncRoutingControls();
     startTimerHz (8);
 }
@@ -152,7 +153,7 @@ void PedalLegendsBridgeEditor::syncRoutingControls()
                                  unavailable ? juce::Colour (0xffa23435) : ink);
         // The original WKWebView is a native child surface. JUCE overlay
         // graphics may be hidden underneath it; use the actual SVG instead.
-        splitGraphic.setRouting (false, false, lanes);
+        routingDiagram.setRouting (mode, ready, unavailable, lanes);
     }
     else
     {
@@ -160,7 +161,8 @@ void PedalLegendsBridgeEditor::syncRoutingControls()
                                           "SIGNAL DIRECT + CHAINE D'EFFETS",
                                juce::dontSendNotification);
         routingStatus.setColour (juce::Label::textColourId, ink);
-        splitGraphic.setRouting (false, false, lanes);
+        routingDiagram.setRouting (mode, processor.isTwoBranchReady(),
+                                   processor.isSplitUnavailable(), lanes);
     }
 #if JUCE_MAC
     if (originalEditor != nullptr)
@@ -185,10 +187,10 @@ void PedalLegendsBridgeEditor::timerCallback()
                 addAndMakeVisible (originalEditor.get());
                 originalEditor->addComponentListener (this);
                 statusLabel.setVisible (false);
-                splitGraphic.toFront (false);
+                routingDiagram.toFront (false);
                 const auto pref = originalEditor->getBounds();
                 setSize (juce::jlimit (1000, 1900, juce::jmax (1520, pref.getWidth())),
-                         juce::jlimit (760, 1320, juce::jmax (1100, pref.getHeight() + routingHeaderHeight)));
+                         juce::jlimit (760, 1320, juce::jmax (1220, pref.getHeight() + routingHeaderHeight)));
                 resized();
             }
         }
@@ -223,7 +225,7 @@ void PedalLegendsBridgeEditor::paint (juce::Graphics& g)
     g.drawFittedText ("AFFECTATION DES 8 PEDALES (A / B)", 529, 66, 478, 17,
                       juce::Justification::centredLeft, 1);
     g.setColour (juce::Colour (0xffb59360));
-    g.drawHorizontalLine (70, 210.0f, (float) getWidth() - 24.0f);
+    g.drawHorizontalLine (110, 25.0f, (float) getWidth() - 25.0f);
 }
 
 void PedalLegendsBridgeEditor::componentMovedOrResized (juce::Component& child,
@@ -277,6 +279,6 @@ void PedalLegendsBridgeEditor::resized()
     statusLabel.setBounds (board.reduced (25));
     if (originalEditor != nullptr)
         originalEditor->setBounds (board);
-    splitGraphic.setBounds (board);
-    splitGraphic.toFront (false);
+    routingDiagram.setBounds (20, 119, juce::jmax (0, getWidth() - 40), 85);
+    routingDiagram.toFront (false);
 }
