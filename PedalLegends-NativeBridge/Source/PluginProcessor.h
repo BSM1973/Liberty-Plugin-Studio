@@ -44,6 +44,10 @@ public:
     bool isTwoBranchReady() const noexcept { return twoBranchReady.load(); }
     bool isSplitUnavailable() const noexcept { return splitUnavailable; }
     void ensureSplitEngines();
+    // Invoked only on the message thread from the verified WKWebView preset
+    // selection event. Audio DSP remains in the original host plugin.
+    void recallFactoryPresetRouting (int mode, const std::array<int, 8>& lanes,
+                                     float balance);
 
 private:
     void handleAsyncUpdate() override;
