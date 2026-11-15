@@ -128,7 +128,7 @@ public:
         if (mode == 0)
         {
             g.drawLine (xSplit, cy, xJoin, cy, 2.6f);
-            drawLane ("SÉRIE", cy, colourA, -1, true);
+            drawLane ("", cy, colourA, -1, true);
         }
         else
         {
