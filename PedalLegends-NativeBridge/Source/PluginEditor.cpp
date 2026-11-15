@@ -10,7 +10,7 @@ namespace
     const juce::Colour copper (0xffb78e55);
     const juce::Colour ivory (0xfff3ead5);
     const juce::Colour border (0xffa78e67);
-    constexpr int routingHeaderHeight = 214;
+    constexpr int routingHeaderHeight = 136;
 }
 
 PedalLegendsBridgeEditor::PedalLegendsBridgeEditor (PedalLegendsBridgeProcessor& p)
@@ -210,21 +210,21 @@ void PedalLegendsBridgeEditor::paint (juce::Graphics& g)
     g.drawRoundedRectangle (bar, 14.0f, 1.3f);
 
     g.setColour (olive);
-    g.fillRoundedRectangle (20.0f, 17.0f, 180.0f, 68.0f, 10.0f);
+    g.fillRoundedRectangle (20.0f, 12.0f, 180.0f, 60.0f, 10.0f);
     g.setColour (ivory);
     g.setFont (juce::Font (juce::FontOptions ("Arial", 11.0f, juce::Font::bold)));
-    g.drawFittedText ("LIBERTY", 31, 22, 155, 18, juce::Justification::centredLeft, 1);
+    g.drawFittedText ("LIBERTY", 31, 16, 155, 18, juce::Justification::centredLeft, 1);
     g.setFont (juce::Font (juce::FontOptions ("Arial", 16.0f, juce::Font::bold)));
-    g.drawFittedText ("ROUTAGE AUDIO", 31, 42, 163, 24, juce::Justification::centredLeft, 1);
+    g.drawFittedText ("ROUTAGE AUDIO", 31, 35, 163, 24, juce::Justification::centredLeft, 1);
 
     g.setColour (juce::Colour (0xff877356));
     g.setFont (juce::Font (juce::FontOptions ("Arial", 9.5f, juce::Font::bold)));
     g.drawFittedText ("MODE DE SIGNAL", 213, 12, 322, 19,
                       juce::Justification::centredLeft, 1);
-    g.drawFittedText ("AFFECTATION DES 8 PEDALES (A / B)", 529, 66, 478, 17,
+    g.drawFittedText ("AFFECTATION DES 8 PEDALES (A / B)", 529, 63, 478, 16,
                       juce::Justification::centredLeft, 1);
     g.setColour (juce::Colour (0xffb59360));
-    g.drawHorizontalLine (110, 25.0f, (float) getWidth() - 25.0f);
+    g.drawHorizontalLine (91, 25.0f, (float) getWidth() - 25.0f);
 }
 
 void PedalLegendsBridgeEditor::componentMovedOrResized (juce::Component&, bool, bool)
@@ -260,13 +260,13 @@ void PedalLegendsBridgeEditor::resized()
     const int startX = roomy ? 529 : 0;
     for (int i = 0; i < 8; ++i)
         stageLaneButtons[(size_t) i].setBounds (
-            roomy ? juce::Rectangle<int> (startX + 58 * i, 83, 54, 26) : juce::Rectangle<int>());
-    routingStatus.setBounds (roomy ? 1020 : 610, 83,
+            roomy ? juce::Rectangle<int> (startX + 58 * i, 72, 54, 22) : juce::Rectangle<int>());
+    routingStatus.setBounds (roomy ? 1020 : 610, 72,
                              roomy ? getWidth() - 1050 : getWidth() - 640, 25);
 
     statusLabel.setBounds (board.reduced (25));
     if (originalEditor != nullptr)
         originalEditor->setBounds (board);
-    routingDiagram.setBounds (20, 119, juce::jmax (0, getWidth() - 40), 85);
+    routingDiagram.setBounds (20, 96, juce::jmax (0, getWidth() - 40), 36);
     routingDiagram.toFront (false);
 }
