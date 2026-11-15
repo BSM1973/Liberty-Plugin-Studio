@@ -93,3 +93,43 @@
   letter-spacing: .3px;
   color: #3d593c !important;
 }
+
+/* V12.2.1 — restore full-width results when Split sidebar is hidden.
+   The original browser is a two-column flex/grid layout: hiding its sidebar
+   does not automatically release the main pane's fixed basis. */
+#main .preset-browser-panel[data-lms-preset-bank="parallel"] .preset-browser-content {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+#main .preset-browser-panel[data-lms-preset-bank="parallel"] .preset-browser-main {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 100% !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+#main .preset-browser-panel[data-lms-preset-bank="parallel"] .preset-results,
+#main .preset-browser-panel[data-lms-preset-bank="parallel"] .preset-results-heading,
+#main .preset-browser-panel[data-lms-preset-bank="parallel"] .preset-search {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+}
+#main .preset-browser-panel[data-lms-preset-bank="parallel"] .preset-results {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  align-content: start !important;
+  gap: 12px !important;
+}
+#main .preset-browser-panel[data-lms-preset-bank="parallel"] .preset-result {
+  min-width: 0 !important;
+  width: auto !important;
+}
+#main .preset-browser-panel[data-lms-preset-bank="parallel"] .preset-result strong {
+  overflow-wrap: anywhere !important;
+}
