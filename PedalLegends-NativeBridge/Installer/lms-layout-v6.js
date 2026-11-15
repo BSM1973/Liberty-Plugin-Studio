@@ -111,4 +111,42 @@
   }
   new MutationObserver(schedule).observe(document.body, {subtree: true, childList: true, characterData: true});
   schedule();
+
+  // V12.2.2: scale the WEB CONTENT, not the native WKWebView component.
+  // A transformed JUCE native child can ignore clipping and overlay routing.
+  // Keep original 1440px document geometry so all cards and modal dialogs
+  // retain their source positions and working pointer hit-testing.
+  const fitMain = document.getElementById('main');
+  if (fitMain) {
+    const originalWidth = 1440;
+    const originalHeight = 960;
+    let fitQueued = false;
+    const applyFit = () => {
+      fitQueued = false;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      if (viewportWidth < 320 || viewportHeight < 240) return;
+      fitMain.style.width = originalWidth + 'px';
+      fitMain.style.maxWidth = 'none';
+      fitMain.style.transformOrigin = '0 0';
+      // Unscaled scrollHeight includes the bottom master controls/footer.
+      const contentHeight = Math.max(originalHeight, fitMain.scrollHeight);
+      const scale = Math.min(1,
+          (viewportWidth - 12) / originalWidth,
+          (viewportHeight - 12) / contentHeight);
+      fitMain.style.transform = 'scale(' + Math.max(0.3, scale).toFixed(4) + ')';
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      document.body.style.margin = '0';
+    };
+    const scheduleFit = () => {
+      if (fitQueued) return;
+      fitQueued = true;
+      requestAnimationFrame(applyFit);
+    };
+    window.addEventListener('resize', scheduleFit);
+    // Dialog opening and dynamic preset lists can increase document height.
+    new ResizeObserver(scheduleFit).observe(fitMain);
+    scheduleFit();
+  }
 })();
