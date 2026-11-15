@@ -1,0 +1,38 @@
+/* Pedal Legends V12.1: native routing wires in the actual original SVG.
+   Colors remain brown/copper as requested; never cover the pedal controls. */
+#main .touring-board .patch-cables { pointer-events: none !important; overflow: visible !important; }
+#main .touring-board .patch-cables .lms-native-cables { pointer-events: none !important; }
+#main .touring-board .patch-cables .lms-cable-outline {
+  stroke: #211910 !important; stroke-width: 11 !important;
+  opacity: .83 !important; fill: none !important; stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+#main .touring-board .patch-cables .lms-cable-A .lms-cable-inner {
+  stroke: #bc8d59 !important; stroke-width: 5.3 !important;
+  opacity: 1 !important; fill: none !important; stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+#main .touring-board .patch-cables .lms-cable-B .lms-cable-inner {
+  stroke: #90562f !important; stroke-width: 5.3 !important;
+  opacity: 1 !important; fill: none !important; stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+#main .touring-board .patch-cables .lms-cable-junction {
+  fill: #b48750 !important; stroke: #302219 !important; stroke-width: 3 !important;
+}
+#main .pedal-grid .slot-well[data-lms-route] {
+  outline: 2px solid #af874f !important; outline-offset: -1px !important;
+}
+#main .pedal-grid .slot-well[data-lms-route="B"] { outline-color: #90562f !important; }
+#main .pedal-grid .slot-heading .lms-split-stage-marker {
+  display: inline-flex !important; align-items: center !important;
+  justify-content: center !important; border: 1px solid #372719 !important;
+  background: #bc8d59 !important; color: #1b2619 !important;
+  width: 22px !important; height: 20px !important;
+  font: 800 11px Arial, sans-serif !important;
+  border-radius: 5px !important; pointer-events: none !important;
+  flex: 0 0 22px !important;
+}
+#main .pedal-grid .slot-well[data-lms-route="B"] .lms-split-stage-marker {
+  background: #90562f !important; color: #fff0d8 !important;
+}
