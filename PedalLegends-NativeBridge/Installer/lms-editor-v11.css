@@ -33,3 +33,11 @@
   line-height: 1.5 !important;
   overflow-wrap: break-word !important;
 }
+/* Fixed-size embedded Audio Unit: remove PluginMaker's own window controls.
+   This does not hide the pedalboard, preset browser, or effects controls. */
+body.webview-mode [data-pm-window-layer],
+body.webview-mode [aria-label="Plugin window options"],
+body.webview-mode [aria-label="Plugin window"] {
+  display: none !important;
+  pointer-events: none !important;
+}
