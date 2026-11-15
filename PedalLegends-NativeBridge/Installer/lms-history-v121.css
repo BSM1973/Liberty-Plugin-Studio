@@ -6,8 +6,10 @@
   align-items: center !important;
   overflow: visible !important;
   position: relative !important;
-  min-height: 118px !important;
-  height: auto !important;
+  min-height: 104px !important;
+  height: 104px !important;
+  padding: 12px 29px !important;
+  box-sizing: border-box !important;
   gap: 9px !important;
 }
 #main .edit-panel .panel-topline > div:first-child {
