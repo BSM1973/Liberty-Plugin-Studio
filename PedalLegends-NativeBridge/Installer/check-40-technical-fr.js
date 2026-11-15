@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 const src = fs.readFileSync(new URL('./lms-layout-v6.js', import.meta.url), 'utf8');
 const tag = 'const technicalFrench = ';
 const start = src.indexOf(tag);
-const end = src.indexOf(';\n  function translateTechnicalDescription', start);
+const end = src.indexOf('\n};', start) + 2; // stop exactly at the JSON object, not later JS declarations
 assert.ok(start >= 0 && end > start, 'French translation dictionary missing');
 const map = JSON.parse(src.slice(start + tag.length, end));
 assert.equal(Object.keys(map).length, 40, 'Expected 40 technical descriptions');
