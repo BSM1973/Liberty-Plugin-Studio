@@ -90,10 +90,14 @@ PedalLegendsBridgeEditor::PedalLegendsBridgeEditor (PedalLegendsBridgeProcessor&
     // the original AU's opaque WebView.
     addAndMakeVisible (routingDiagram);
 
-    // The original pedalboard is 1440x960. The premium header is added
-    // above it, not drawn over its controls.
+    // Native WKWebView cannot safely be resized with an affine transform.
+    // Keep the source-size editor and scroll its JUCE viewport instead.
+    boardViewport.setScrollBarsShown (true, true);
+    boardViewport.setScrollBarThickness (12);
+    addAndMakeVisible (boardViewport);
+    boardViewport.toBack();
     setResizable (false, false);
-    setSize (1520, 1220);
+    setSize (1380, 950);
     syncRoutingControls();
     startTimerHz (8);
 }
@@ -104,6 +108,7 @@ PedalLegendsBridgeEditor::~PedalLegendsBridgeEditor()
     cancelPendingUpdate();
     if (originalEditor != nullptr)
         originalEditor->removeComponentListener (this);
+    boardViewport.setViewedComponent (nullptr, false);
     originalEditor.reset();
     for (auto& button : modeButtons) button.setLookAndFeel (nullptr);
     for (auto& button : stageLaneButtons) button.setLookAndFeel (nullptr);
@@ -184,13 +189,13 @@ void PedalLegendsBridgeEditor::timerCallback()
             originalEditor.reset (inner->createEditorIfNeeded());
             if (originalEditor != nullptr)
             {
-                addAndMakeVisible (originalEditor.get());
-                originalEditor->addComponentListener (this);
+                const auto preferred = originalEditor->getBounds();
+                originalEditor->setSize (juce::jmax (1440, preferred.getWidth()),
+                                         juce::jmax (960, preferred.getHeight()));
+                boardViewport.setViewedComponent (originalEditor.get(), false);
+                boardViewport.setViewPosition (0, 0);
                 statusLabel.setVisible (false);
                 routingDiagram.toFront (false);
-                const auto pref = originalEditor->getBounds();
-                setSize (juce::jlimit (1000, 1900, juce::jmax (1520, pref.getWidth())),
-                         juce::jlimit (760, 1320, juce::jmax (1220, pref.getHeight() + routingHeaderHeight)));
                 resized();
             }
         }
@@ -228,26 +233,15 @@ void PedalLegendsBridgeEditor::paint (juce::Graphics& g)
     g.drawHorizontalLine (110, 25.0f, (float) getWidth() - 25.0f);
 }
 
-void PedalLegendsBridgeEditor::componentMovedOrResized (juce::Component& child,
-                                                       bool, bool wasResized)
+void PedalLegendsBridgeEditor::componentMovedOrResized (juce::Component&,
+                                                       bool, bool)
 {
-    if (! wasResized || &child != originalEditor.get() || updatingChildLayout)
-        return;
-    if (child.getWidth() < 320 || child.getHeight() < 240)
-        return;
-    pendingWidth = child.getWidth();
-    pendingHeight = child.getHeight() + routingHeaderHeight;
-    triggerAsyncUpdate();
+    // Deliberately do not resize the host from the embedded AU editor.
 }
 
 void PedalLegendsBridgeEditor::handleAsyncUpdate()
 {
-    if (originalEditor == nullptr || pendingWidth <= 0 || pendingHeight <= 0)
-        return;
-    const int targetW = juce::jlimit (700, 2400, pendingWidth);
-    const int targetH = juce::jlimit (480, 1800, pendingHeight);
-    if (targetW != getWidth() || targetH != getHeight())
-        setSize (targetW, targetH);
+    // Host dimensions stay fixed; the viewport provides access to the bottom.
 }
 
 void PedalLegendsBridgeEditor::resized()
@@ -277,8 +271,8 @@ void PedalLegendsBridgeEditor::resized()
                              roomy ? getWidth() - 1050 : getWidth() - 640, 25);
 
     statusLabel.setBounds (board.reduced (25));
-    if (originalEditor != nullptr)
-        originalEditor->setBounds (board);
+    boardViewport.setBounds (board);
+    boardViewport.toBack();
     routingDiagram.setBounds (20, 119, juce::jmax (0, getWidth() - 40), 85);
     routingDiagram.toFront (false);
 }
