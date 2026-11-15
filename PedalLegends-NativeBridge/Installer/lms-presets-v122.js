@@ -60,7 +60,7 @@
       const sourceParams=preset.params;
       const name=tag+String(i+1).padStart(3,"0")+" — "+preset.name;
       const lanes=assignLanes(sourceParams, i);
-      const balance=Math.round((0.37+((i*3)%9)*0.033)*100)/100;
+      const balance=Math.round((0.37+((i*5)%9)*0.033)*100)/100;
       const category=preset.extras?.category || "Studio Essentials";
       const recipe={
         name,source:preset.name,
