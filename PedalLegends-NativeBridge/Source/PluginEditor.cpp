@@ -93,7 +93,7 @@ PedalLegendsBridgeEditor::PedalLegendsBridgeEditor (PedalLegendsBridgeProcessor&
     // The original pedalboard is 1440x960. The premium header is added
     // above it, not drawn over its controls.
     setResizable (false, false);
-    setSize (1520, 1150);
+    setSize (1060, 845);
     syncRoutingControls();
     startTimerHz (8);
 }
@@ -261,12 +261,12 @@ void PedalLegendsBridgeEditor::resized()
     for (int i = 0; i < 8; ++i)
         stageLaneButtons[(size_t) i].setBounds (
             roomy ? juce::Rectangle<int> (startX + 58 * i, 83, 54, 26) : juce::Rectangle<int>());
-    routingStatus.setBounds (roomy ? 1020 : 610, 83,
-                             roomy ? getWidth() - 1050 : getWidth() - 640, 25);
+    routingStatus.setBounds (roomy ? 915 : 610, 83,
+                             roomy ? getWidth() - 925 : getWidth() - 640, 25);
 
     statusLabel.setBounds (board.reduced (25));
     if (originalEditor != nullptr)
         originalEditor->setBounds (board);
-    routingDiagram.setBounds (20, 112, juce::jmax (0, getWidth() - 40), 65);
+    routingDiagram.setBounds (20, 95, juce::jmax (0, getWidth() - 40), 82);
     routingDiagram.toFront (false);
 }
