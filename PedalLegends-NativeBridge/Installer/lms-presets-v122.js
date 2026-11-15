@@ -86,6 +86,20 @@
   }
 
   window.LMS_V122_SPLIT_RECIPES=manifest;
+  // The original macOS AU uses bundled factory data (file://), not fetch().
+  // postinstall adds one exact, guarded invocation to its minified bi() parser.
+  // This hook supports BOTH the native bundled and the HTTP JSON pathways.
+  window.LMS_V122_augmentFactory=function(data) {
+    const records=Array.isArray(data) ? data : data?.presets;
+    if (!Array.isArray(records)) return data;
+    const alreadyPresent=records.some(p=>typeof p?.name==="string" &&
+      p.name.startsWith(tag));
+    if(alreadyPresent) return data;
+    const appended=buildSplitFactory(records);
+    if(appended.length!==100) return data;
+    const all=[...records,...appended];
+    return Array.isArray(data) ? all : {...data,presets:all};
+  };
   window.fetch=async function(input,options) {
     const reply=await originalFetch(input,options);
     const pathname=typeof input==="string" ? input :
@@ -96,13 +110,8 @@
       const base=await reply.clone().json();
       const collection=Array.isArray(base) ? base : base?.presets;
       if (!Array.isArray(collection)) return reply;
-      const appended=buildSplitFactory(collection);
-      if (appended.length !== 100) {
-        console.warn("Liberty V12.2: source collection differs from the expected 100 factory presets; no changes made.");
-        return reply;
-      }
-      const all=[...collection,...appended];
-      const body=Array.isArray(base) ? all : {...base,presets:all};
+      const body=window.LMS_V122_augmentFactory(base);
+      if(body===base) return reply;
       return new Response(JSON.stringify(body),{
         status:200,
         headers:{"Content-Type":"application/json;charset=utf-8"}
