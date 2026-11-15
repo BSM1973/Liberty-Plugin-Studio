@@ -114,15 +114,8 @@
       if (marker) marker.textContent = letter;
     }
     const legend = document.querySelector("#main .chain-legend");
-    if (legend) {
-      if (split) {
-        if (!legend.dataset.lmsOriginal) legend.dataset.lmsOriginal = legend.innerHTML;
-        legend.textContent = "ENTRÉE  /  A + B  /  SORTIE";
-      } else if (legend.dataset.lmsOriginal) {
-        legend.innerHTML = legend.dataset.lmsOriginal;
-        delete legend.dataset.lmsOriginal;
-      }
-    }
+    // Never mutate React-owned text children: only toggle a CSS class.
+    if (legend) legend.classList.toggle("lms-chain-split", split);
     if (!split) return;
     const group = svgElement("g", { class: "lms-native-cables", "aria-hidden": "true" });
     // Routes are brown, with subtle copper/gold tint to distinguish branches.
